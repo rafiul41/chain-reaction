@@ -3,10 +3,12 @@ import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
+import { ChainReactionComponent } from './components/chain-reaction/chain-reaction.component';
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    ChainReactionComponent
   ],
   imports: [
     BrowserModule,
