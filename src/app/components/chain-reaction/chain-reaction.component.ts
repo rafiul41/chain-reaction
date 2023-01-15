@@ -21,8 +21,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
   animationId: any;
 
   grid: Grid;
-  cells: [[Cell]]
-  balls: [[Ball[]]];
+  cells: [[Cell]];
 
   constructor() {}
 
@@ -53,15 +52,23 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
     this.grid.width = canvasWidth;
     this.grid.height = canvasHeight;
     this.ctx = this.canvas.nativeElement.getContext('2d');
-    
+
     let initialBallConfig: any = [];
-    for(let i = 0; i < this.grid.rowCnt; i++) {
+    for (let i = 0; i < this.grid.rowCnt; i++) {
       initialBallConfig.push([]);
-      for(let j = 0; j < this.grid.colCnt; j++) {
-        initialBallConfig[i].push([]);
+      for (let j = 0; j < this.grid.colCnt; j++) {
+        initialBallConfig[i].push({
+          maxBallCnt: this.getMaxBallCnt(i, j),
+          ballCnt: 0,
+          balls: [],
+        });
       }
     }
-    this.balls = initialBallConfig;
+    this.cells = initialBallConfig;
+  }
+
+  getMaxBallCnt(row: number, col: number) {
+    return this.isCornerCell(row, col) ? 1 : this.isEdgeCell(row, col) ? 2 : 3;
   }
 
   drawGrid() {
@@ -106,16 +113,16 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
   }
 
   updateBalls() {
-    for (let i = 0; i < this.balls.length; i++) {
-      for (let j = 0; j < this.balls[i].length; j++) {
-        for (let k = 0; k < this.balls[i][j].length; k++) {
-          let ball = this.balls[i][j][k];
-          if(ball.isVibrating) {
+    for (let i = 0; i < this.cells.length; i++) {
+      for (let j = 0; j < this.cells[i].length; j++) {
+        for (let k = 0; k < this.cells[i][j].balls.length; k++) {
+          let ball = this.cells[i][j].balls[k];
+          if (ball.isVibrating) {
             ball.vibrationSpeed++;
             ball.vibrationSpeed %= 5;
-            if(ball.vibrationSpeed === 0) {
-              ball.currX = ball.startX + (Math.random() * 10 - 2.5);
-              ball.currY = ball.startY + (Math.random() * 10 - 2.5);
+            if (ball.vibrationSpeed === 0) {
+              ball.currX = ball.startX + (Math.random() * 10 - 5);
+              ball.currY = ball.startY + (Math.random() * 10 - 5);
             }
           }
           this.drawBall(ball);
@@ -125,7 +132,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
   }
 
   drawBall(ball: Ball) {
-    if(!this.ctx) return;
+    if (!this.ctx) return;
     this.ctx.beginPath();
     this.ctx.arc(ball.currX, ball.currY, ball.radius, 0, 2 * Math.PI, false);
     this.ctx.fillStyle = ball.color;
@@ -139,42 +146,79 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
   }
 
   isCornerCell(row: number, col: number) {
-    return (row === 0 && col === 0) 
-      || (row === 0 && col === this.grid.colCnt - 1) 
-      || (row === this.grid.rowCnt - 1 && col === 0) 
-      || (row === this.grid.rowCnt - 1 && col === this.grid.colCnt - 1);
+    return (
+      (row === 0 && col === 0) ||
+      (row === 0 && col === this.grid.colCnt - 1) ||
+      (row === this.grid.rowCnt - 1 && col === 0) ||
+      (row === this.grid.rowCnt - 1 && col === this.grid.colCnt - 1)
+    );
   }
 
   isEdgeCell(row: number, col: number) {
-    return !this.isCornerCell(row, col) && row === 0 || col === 0 || row === this.grid.rowCnt - 1 || col === this.grid.colCnt - 1;
+    return (
+      (!this.isCornerCell(row, col) && row === 0) ||
+      col === 0 ||
+      row === this.grid.rowCnt - 1 ||
+      col === this.grid.colCnt - 1
+    );
   }
 
   isMiddleCell(row: number, col: number) {
     return !this.isCornerCell(row, col) && !this.isEdgeCell(row, col);
   }
 
-  getVibrationVal(row: number, col: number) {
-    if(this.isCornerCell(row, col)) {
+  updateCellBallPositions(row: number, col: number) {
+    let cell = this.cells[row][col];
+    let denominator = 6;
+    if(cell.ballCnt === 2) {
+      cell.balls[0].startX += this.grid.cellWidth / denominator;
+      cell.balls[1].startX -= this.grid.cellWidth / denominator;
+      
+      cell.balls[0].currX += this.grid.cellWidth / denominator;
+      cell.balls[1].currX -= this.grid.cellWidth / denominator;
+    } else if(cell.ballCnt === 3) {
+      cell.balls[0].startX += this.grid.cellWidth / (denominator * 10);
+      cell.balls[0].startY -= this.grid.cellWidth / denominator;
+      cell.balls[1].startX -= this.grid.cellWidth / (denominator * 10);
+      cell.balls[1].startY -= this.grid.cellWidth / denominator;
+      cell.balls[2].startY += this.grid.cellWidth / denominator;
 
+      cell.balls[0].currX += this.grid.cellWidth / (denominator * 10);
+      cell.balls[0].currY -= this.grid.cellWidth / denominator;
+      cell.balls[1].currX -= this.grid.cellWidth / (denominator * 10);
+      cell.balls[1].currY -= this.grid.cellWidth / denominator;
+      cell.balls[2].currY += this.grid.cellWidth / denominator;
+    }
+  }
+
+  getBallCoordinates(row: number, col: number): Point {
+    return {
+      x: col * this.grid.cellWidth + this.grid.cellWidth / 2 + this.grid.padding,
+      y: row * this.grid.cellWidth + this.grid.cellWidth / 2 + this.grid.padding
     }
   }
 
   createBall(row: number, col: number): Ball {
-    let x = (col * this.grid.cellWidth) + (this.grid.cellWidth / 2) + this.grid.padding;
-    let y = (row * this.grid.cellWidth) + (this.grid.cellWidth / 2) + this.grid.padding;
+    let initialBallPos = this.getBallCoordinates(row, col);
     return {
       color: 'red',
       isMoving: false,
       motionSpeed: 1,
       radius: this.grid.cellWidth / 4,
-      startX: x,
-      startY: y,
-      currX: x,
-      currY: y,
+      startX: initialBallPos.x,
+      startY: initialBallPos.y,
+      currX: initialBallPos.x,
+      currY: initialBallPos.y,
       wallDistFromCenter: this.grid.cellWidth / 3,
-      isVibrating: false,
-      vibrationSpeed: 1
+      isVibrating: this.cells[row][col].maxBallCnt === this.cells[row][col].ballCnt,
+      vibrationSpeed: 1,
     };
+  }
+
+  vibrateAllBallsInCell(row: number, col: number) {
+    for(let i = 0; i < this.cells[row][col].balls.length; i++) {
+      this.cells[row][col].balls[i].isVibrating = true;
+    }
   }
 
   onCellClick(e: any) {
@@ -188,8 +232,11 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
       console.log('PLEASE CLICK ON A CELL!');
       return;
     }
-    
+
+    this.cells[cellRow][cellCol].ballCnt++;
     const ball: Ball = this.createBall(cellRow, cellCol);
-    this.balls[cellRow][cellCol].push(ball);
+    if(ball.isVibrating) this.vibrateAllBallsInCell(cellRow, cellCol);
+    this.cells[cellRow][cellCol].balls.push(ball);
+    this.updateCellBallPositions(cellRow, cellCol);
   }
 }
