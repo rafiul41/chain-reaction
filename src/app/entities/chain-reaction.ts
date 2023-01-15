@@ -9,15 +9,25 @@ export interface Grid {
   colCnt: number,
   width: number,
   height: number,
-  padding: number // padding from all sides
+  padding: number
+}
+
+export interface Cell {
+  maxBallCnt: number,
+  ballCnt: number,
+  balls: Ball[]
 }
 
 export interface Ball {
   startX: number,
   startY: number,
-  isMoving: boolean,
+  currX: number,
+  currY: number,
   radius: number,
   wallDistFromCenter: number,
+  color: string
+  isMoving: boolean,
   motionSpeed: number,
-  color: string,
+  isVibrating: boolean,
+  vibrationSpeed: number
 }
