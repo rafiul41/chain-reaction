@@ -5,7 +5,7 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
-import { Ball, Cell, COLOR, Grid, Point, SPEED, TransitionBall } from '../../entities/chain-reaction';
+import { Ball, Cell, COLOR, GRID, Grid, Point, SPEED, TransitionBall } from '../../entities/chain-reaction';
 
 @Component({
   selector: 'app-chain-reaction',
@@ -20,12 +20,23 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
 
   animationId: any;
 
+  rowCnt = 5;
+  colCnt = 5;
   grid: Grid;
   cells: Cell[][];
 
   isTransitioning = false;
 
   transitionBalls: TransitionBall[];
+
+  isGameOver = false;
+
+  hasAllPlayersClicked = false;
+
+  playerCnt = 4;
+  playerInd = 0;
+
+  ballColors = [COLOR.RED, COLOR.GREEN, COLOR.BLUE, COLOR.BROWN, COLOR.PINK];
 
   constructor() {}
 
@@ -51,12 +62,12 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
 
   initializeGridAndCanvas() {
     this.grid = {
-      rowCnt: 5,
-      colCnt: 5,
-      cellWidth: 100,
+      rowCnt: this.rowCnt,
+      colCnt: this.colCnt,
+      cellWidth: GRID.CELL_WIDTH,
       width: 0,
       height: 0,
-      padding: 5,
+      padding: GRID.PADDING,
     };
     let canvasWidth =
       this.grid.cellWidth * this.grid.colCnt + 2 * this.grid.padding;
@@ -129,7 +140,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
               ball.currY = ball.startY + (Math.random() * 10 - 5);
             }
           }
-          this.drawBall(ball);
+          this.drawBall(ball, this.cells[i][j].color);
         }
       }
     }
@@ -154,18 +165,20 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
         if(ball.currX < ball.endX) toRemove = true;
       }
       if(toRemove) {
+        this.addBallOnCell(ball.endR, ball.endC);
+        this.cells[ball.endR][ball.endC].color = this.cells[ball.startR][ball.startC].color;
         this.transitionBalls = [...this.transitionBalls.slice(0, i), ...this.transitionBalls.slice(i + 1)];
       } else {
-        this.drawBall(ball);
+        this.drawBall(ball, this.cells[ball.startR][ball.startC].color);
       }
     }
   }
 
-  drawBall(ball: Ball | TransitionBall) {
+  drawBall(ball: Ball | TransitionBall, color: string) {
     if (!this.ctx) return;
     this.ctx.beginPath();
     this.ctx.arc(ball.currX, ball.currY, ball.radius, 0, 2 * Math.PI, false);
-    this.ctx.fillStyle = ball.color;
+    this.ctx.fillStyle = color;
     this.ctx.fill();
   }
 
@@ -207,7 +220,6 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
   createBall(row: number, col: number): Ball {
     let initialBallPos = this.getBallCoordinates(row, col);
     return {
-      color: COLOR.RED,
       radius: this.grid.cellWidth / 4,
       startX: initialBallPos.x,
       startY: initialBallPos.y,
@@ -252,15 +264,16 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
     let coordinates = this.getBallCoordinates(endR, endC);
     let startCoordinates = this.getBallCoordinates(startR, startC);
     return {
-      color: COLOR.RED,
+      startR,
+      startC,
       endX: coordinates.x,
       endY: coordinates.y,
       radius: this.grid.cellWidth / 4,
-      startX: startCoordinates.x,
-      startY: startCoordinates.y, 
       currX: startCoordinates.x,
       currY: startCoordinates.y,
-      dir
+      dir,
+      endR,
+      endC
     };
   }
 
@@ -285,6 +298,8 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
       return; 
     }
     
+    this.cells[row][col].color = this.ballColors[this.playerInd];
+
     const ball: Ball = this.createBall(row, col);
     if(ball.isVibrating) this.vibrateAllBallsInCell(row, col);
     this.cells[row][col].balls.push(ball);
@@ -314,6 +329,16 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if(this.cells[row][col].balls.length > 0 && this.cells[row][col].color !== this.ballColors[this.playerInd]) {
+      return;
+    }
+
     this.addBallOnCell(row, col);
+    this.goToNextPlayer();
+  }
+
+  goToNextPlayer() {
+    this.playerInd++;
+    this.playerInd %= this.playerCnt;
   }
 }

@@ -1,3 +1,4 @@
 <div class="chain-reaction">
   <canvas (click)="onCellClick($event)" #canvas></canvas>
+  <div *ngIf="isGameOver">GAME OVER PLEASE RESTART</div>
 </div>

@@ -9,9 +9,16 @@ export enum COLOR {
   BLACK = 'black'
 }
 
+export enum GRID {
+  ROW_CNT = 2,
+  COL_CNT = 2,
+  CELL_WIDTH = 100,
+  PADDING = 5
+}
+
 export enum SPEED {
   VIBRATION_MOD = 10,
-  TRANSITION_BALL_SPEED = 1
+  TRANSITION_BALL_SPEED = 5
 }
 
 export interface Point {
@@ -30,6 +37,7 @@ export interface Grid {
 
 export interface Cell {
   maxBallCnt: number,
+  color: string,
   balls: Ball[]
 }
 
@@ -39,19 +47,19 @@ export interface Ball {
   currX: number,
   currY: number,
   radius: number,
-  color: string,
   isVibrating: boolean,
   vibrationSpeed: number
 }
 
 export interface TransitionBall {
-  startX: number,
-  startY: number,
+  startR: number,
+  startC: number,
   currX: number,
   currY: number,
   dir: string,
   endX: number,
   endY: number,
-  radius: number,
-  color: string
+  endR: number,
+  endC: number,
+  radius: number
 }
