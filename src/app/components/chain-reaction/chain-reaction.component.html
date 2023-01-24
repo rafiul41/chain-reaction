@@ -1,4 +1,10 @@
 <div class="chain-reaction">
   <canvas (click)="onCellClick($event)" #canvas></canvas>
+  <div style="margin-top: 20px; color: white">
+    CURRENT PLAYER TURN:
+    <span [style.color]="ballColors[playerInd]">{{
+      ballColors[playerInd]
+    }}</span>
+  </div>
   <div *ngIf="isGameOver">GAME OVER PLEASE RESTART</div>
 </div>
