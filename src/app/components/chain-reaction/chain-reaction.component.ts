@@ -37,6 +37,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
   playerInd = 0;
 
   ballColors = [COLOR.RED, COLOR.GREEN, COLOR.BLUE, COLOR.BROWN, COLOR.PINK];
+  currentColor: string;
 
   constructor() {}
 
@@ -85,6 +86,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
       for (let j = 0; j < this.grid.colCnt; j++) {
         initialBallConfig[i].push({
           maxBallCnt: this.getMaxBallCntInCell(i, j),
+          color: '',
           balls: [],
         });
       }
@@ -166,10 +168,10 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
       }
       if(toRemove) {
         this.addBallOnCell(ball.endR, ball.endC);
-        this.cells[ball.endR][ball.endC].color = this.cells[ball.startR][ball.startC].color;
+        this.cells[ball.endR][ball.endC].color = this.currentColor;
         this.transitionBalls = [...this.transitionBalls.slice(0, i), ...this.transitionBalls.slice(i + 1)];
       } else {
-        this.drawBall(ball, this.cells[ball.startR][ball.startC].color);
+        this.drawBall(ball, this.currentColor);
       }
     }
   }
@@ -279,6 +281,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
 
   burstCell(row: number, col: number) {
     this.isTransitioning = true;
+    this.cells[row][col].color = '';
     this.cells[row][col].balls = [];
     let fr = [1, -1, 0, 0];
     let fc = [0, 0, 1, -1];
@@ -298,7 +301,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
       return; 
     }
     
-    this.cells[row][col].color = this.ballColors[this.playerInd];
+    this.cells[row][col].color = this.currentColor;
 
     const ball: Ball = this.createBall(row, col);
     if(ball.isVibrating) this.vibrateAllBallsInCell(row, col);
@@ -333,6 +336,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.currentColor = this.ballColors[this.playerInd];
     this.addBallOnCell(row, col);
     this.goToNextPlayer();
   }
