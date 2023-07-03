@@ -33,7 +33,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
 
   hasAllPlayersClicked = false;
 
-  playerCnt = 4;
+  playerCnt = 2;
   playerInd = 0;
 
   ballColors = [COLOR.RED, COLOR.GREEN, COLOR.BLUE, COLOR.BROWN, COLOR.PINK];
