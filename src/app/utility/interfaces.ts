@@ -1,26 +1,3 @@
-export enum COLOR {
-  RED = 'red',
-  GREEN = 'green',
-  BLUE = 'blue',
-  WHITE = 'white',
-  PINK = 'pink',
-  BROWN = 'brown',
-  CYAN = 'cyan',
-  BLACK = 'black'
-}
-
-export enum GRID {
-  ROW_CNT = 2,
-  COL_CNT = 2,
-  CELL_WIDTH = 100,
-  PADDING = 5
-}
-
-export enum SPEED {
-  VIBRATION_MOD = 10,
-  TRANSITION_BALL_SPEED = 5
-}
-
 export interface Point {
   x: number,
   y: number

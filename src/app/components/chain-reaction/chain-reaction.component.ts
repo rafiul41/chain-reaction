@@ -5,7 +5,9 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
-import { Ball, Cell, COLOR, GRID, Grid, Point, SPEED, TransitionBall } from '../../entities/chain-reaction';
+import { Ball, Cell, Grid, TransitionBall } from '../../utility/interfaces';
+import { COLOR, GRID, SPEED } from '../../utility/enums';
+import { drawBall, drawLine, getBallCoordinates, isCornerCell, isEdgeCell, isRowColValid } from '../../utility/functions';
 
 @Component({
   selector: 'app-chain-reaction',
@@ -33,15 +35,16 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
 
   hasAllPlayersClicked = false;
 
-  playerCnt = 2;
+  playerCnt = 7;
   playerInd = 0;
 
-  ballColors = [COLOR.RED, COLOR.GREEN, COLOR.BLUE, COLOR.BROWN, COLOR.PINK];
+  ballColors = [COLOR.RED, COLOR.GREEN, COLOR.BLUE, COLOR.WHITE, COLOR.PINK, COLOR.BROWN, COLOR.CYAN];
   currentColor: string;
 
   constructor() {}
 
   ngOnInit(): void {
+    this.ballColors = this.ballColors.slice(0, this.playerCnt);
     this.initializeGridAndCanvas();
     this.animate();
   }
@@ -58,7 +61,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
   }
 
   getMaxBallCntInCell(row: number, col: number) {
-    return this.isCornerCell(row, col) ? 1 : this.isEdgeCell(row, col) ? 2 : 3;
+    return isCornerCell(row, col, this.grid) ? 1 : isEdgeCell(row, col, this.grid) ? 2 : 3;
   }
 
   initializeGridAndCanvas() {
@@ -106,7 +109,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
       let startY = this.grid.padding;
       let endX = i * this.grid.cellWidth + this.grid.padding;
       let endY = this.grid.height - this.grid.padding;
-      this.drawLine({ x: startX, y: startY }, { x: endX, y: endY }, COLOR.WHITE);
+      drawLine({ x: startX, y: startY }, { x: endX, y: endY }, COLOR.WHITE, this.ctx);
     }
 
     // horizontal Lines
@@ -115,17 +118,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
       let startY = i * this.grid.cellWidth + this.grid.padding;
       let endX = this.grid.width - this.grid.padding;
       let endY = i * this.grid.cellWidth + this.grid.padding;
-      this.drawLine({ x: startX, y: startY }, { x: endX, y: endY }, COLOR.WHITE);
-    }
-  }
-
-  drawLine(start: Point, end: Point, color: string) {
-    if (this.ctx) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(start.x, start.y);
-      this.ctx.lineTo(end.x, end.y);
-      this.ctx.strokeStyle = color;
-      this.ctx.stroke();
+      drawLine({ x: startX, y: startY }, { x: endX, y: endY }, COLOR.WHITE, this.ctx);
     }
   }
 
@@ -142,7 +135,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
               ball.currY = ball.startY + (Math.random() * 10 - 5);
             }
           }
-          this.drawBall(ball, this.cells[i][j].color);
+          drawBall(ball, this.cells[i][j].color, this.ctx);
         }
       }
     }
@@ -171,56 +164,13 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
         this.cells[ball.endR][ball.endC].color = this.currentColor;
         this.transitionBalls = [...this.transitionBalls.slice(0, i), ...this.transitionBalls.slice(i + 1)];
       } else {
-        this.drawBall(ball, this.currentColor);
+        drawBall(ball, this.currentColor, this.ctx);
       }
     }
   }
 
-  drawBall(ball: Ball | TransitionBall, color: string) {
-    if (!this.ctx) return;
-    this.ctx.beginPath();
-    this.ctx.arc(ball.currX, ball.currY, ball.radius, 0, 2 * Math.PI, false);
-    this.ctx.fillStyle = color;
-    this.ctx.fill();
-  }
-
-  isRowColValid(row: number, col: number) {
-    return (
-      row >= 0 && row < this.grid.rowCnt && col >= 0 && col < this.grid.colCnt
-    );
-  }
-
-  isCornerCell(row: number, col: number) {
-    return (
-      (row === 0 && col === 0) ||
-      (row === 0 && col === this.grid.colCnt - 1) ||
-      (row === this.grid.rowCnt - 1 && col === 0) ||
-      (row === this.grid.rowCnt - 1 && col === this.grid.colCnt - 1)
-    );
-  }
-
-  isEdgeCell(row: number, col: number) {
-    return (
-      (!this.isCornerCell(row, col) && row === 0) ||
-      col === 0 ||
-      row === this.grid.rowCnt - 1 ||
-      col === this.grid.colCnt - 1
-    );
-  }
-
-  isMiddleCell(row: number, col: number) {
-    return !this.isCornerCell(row, col) && !this.isEdgeCell(row, col);
-  }
-
-  getBallCoordinates(row: number, col: number): Point {
-    return {
-      x: col * this.grid.cellWidth + this.grid.cellWidth / 2 + this.grid.padding,
-      y: row * this.grid.cellWidth + this.grid.cellWidth / 2 + this.grid.padding
-    }
-  }
-
   createBall(row: number, col: number): Ball {
-    let initialBallPos = this.getBallCoordinates(row, col);
+    let initialBallPos = getBallCoordinates(row, col, this.grid);
     return {
       radius: this.grid.cellWidth / 4,
       startX: initialBallPos.x,
@@ -263,8 +213,8 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
   }
 
   createTransitionBall(startR: number, startC: number, endR: number, endC: number, dir: string): TransitionBall {
-    let coordinates = this.getBallCoordinates(endR, endC);
-    let startCoordinates = this.getBallCoordinates(startR, startC);
+    let coordinates = getBallCoordinates(endR, endC, this.grid);
+    let startCoordinates = getBallCoordinates(startR, startC, this.grid);
     return {
       startR,
       startC,
@@ -327,7 +277,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
     let rowCol = this.getRowColFromCoordinate(gridCoordinate.x, gridCoordinate.y);
     let row = rowCol.row;
     let col = rowCol.col;
-    if (!this.isRowColValid(row, col)) {
+    if (!isRowColValid(row, col, this.grid)) {
       console.log('PLEASE CLICK ON A CELL!');
       return;
     }
