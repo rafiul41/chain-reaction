@@ -5,9 +5,9 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
-import { Ball, Cell, Grid, TransitionBall } from '../../utility/interfaces';
+import { Ball, Cell, Direction, Grid, TransitionBall } from '../../utility/interfaces';
 import { COLOR, GRID, SPEED } from '../../utility/enums';
-import { drawBall, drawLine, getBallCoordinates, isCornerCell, isEdgeCell, isRowColValid } from '../../utility/functions';
+import { drawBall, drawGrid, drawLine, getBallCoordinates, isCornerCell, isEdgeCell, isRowColValid } from '../../utility/functions';
 
 @Component({
   selector: 'app-chain-reaction',
@@ -35,11 +35,13 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
 
   hasAllPlayersClicked = false;
 
-  playerCnt = 7;
+  playerCnt = 2;
   playerInd = 0;
 
   ballColors = [COLOR.RED, COLOR.GREEN, COLOR.BLUE, COLOR.WHITE, COLOR.PINK, COLOR.BROWN, COLOR.CYAN];
   currentColor: string;
+
+  cellCntForColor = [];
 
   constructor() {}
 
@@ -55,9 +57,56 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
 
   animate() {
     this.ctx?.clearRect(0, 0, this.grid.width, this.grid.height);
-    this.drawGrid();
+    drawGrid(this.grid, this.ctx);
     this.updateBalls();
     this.animationId = requestAnimationFrame(() => this.animate());
+  }
+
+  updateBalls() {
+    for (let i = 0; i < this.cells.length; i++) {
+      for (let j = 0; j < this.cells[i].length; j++) {
+        for (let k = 0; k < this.cells[i][j].balls.length; k++) {
+          let ball = this.cells[i][j].balls[k];
+          if (ball.isVibrating) {
+            ball.vibrationSpeed++;
+            ball.vibrationSpeed %= SPEED.VIBRATION_MOD;
+            if (ball.vibrationSpeed === 0) {
+              ball.currX = ball.startX + (Math.random() * 10 - SPEED.VIBRATION_MOD);
+              ball.currY = ball.startY + (Math.random() * 10 - SPEED.VIBRATION_MOD);
+            }
+          }
+          drawBall(ball, this.cells[i][j].color, this.ctx);
+        }
+      }
+    }
+    if(this.transitionBalls.length === 0) {
+      this.isTransitioning = false;
+      return;
+    }
+    for(let i = 0; i < this.transitionBalls.length; i++) {
+      let ball = this.transitionBalls[i];
+      let toRemove = false;
+      if(ball.dir === 'U') {
+        ball.currY -= SPEED.TRANSITION_BALL_SPEED;
+        if(ball.currY < ball.endY) toRemove = true;
+      } else if(ball.dir === 'D') {
+        ball.currY += SPEED.TRANSITION_BALL_SPEED;
+        if(ball.currY > ball.endY) toRemove = true;
+      } else if(ball.dir === 'R') {
+        ball.currX += SPEED.TRANSITION_BALL_SPEED;
+        if(ball.currX > ball.endX) toRemove = true;
+      } else {
+        ball.currX -= SPEED.TRANSITION_BALL_SPEED;
+        if(ball.currX < ball.endX) toRemove = true;
+      }
+      if(toRemove) {
+        this.addBallOnCell(ball.endR, ball.endC);
+        this.cells[ball.endR][ball.endC].color = this.currentColor;
+        this.transitionBalls = [...this.transitionBalls.slice(0, i), ...this.transitionBalls.slice(i + 1)];
+      } else {
+        drawBall(ball, this.currentColor, this.ctx);
+      }
+    }
   }
 
   getMaxBallCntInCell(row: number, col: number) {
@@ -98,76 +147,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
     this.transitionBalls = [];
   }
 
-  drawGrid() {
-    if (this.ctx) {
-      this.ctx.fillStyle = COLOR.BLACK;
-      this.ctx.fillRect(0, 0, this.grid.width, this.grid.height);
-    }
-    // vertical Lines
-    for (let i = 0; i < this.grid.colCnt + 1; i++) {
-      let startX = i * this.grid.cellWidth + this.grid.padding;
-      let startY = this.grid.padding;
-      let endX = i * this.grid.cellWidth + this.grid.padding;
-      let endY = this.grid.height - this.grid.padding;
-      drawLine({ x: startX, y: startY }, { x: endX, y: endY }, COLOR.WHITE, this.ctx);
-    }
-
-    // horizontal Lines
-    for (let i = 0; i < this.grid.rowCnt + 1; i++) {
-      let startX = this.grid.padding;
-      let startY = i * this.grid.cellWidth + this.grid.padding;
-      let endX = this.grid.width - this.grid.padding;
-      let endY = i * this.grid.cellWidth + this.grid.padding;
-      drawLine({ x: startX, y: startY }, { x: endX, y: endY }, COLOR.WHITE, this.ctx);
-    }
-  }
-
-  updateBalls() {
-    for (let i = 0; i < this.cells.length; i++) {
-      for (let j = 0; j < this.cells[i].length; j++) {
-        for (let k = 0; k < this.cells[i][j].balls.length; k++) {
-          let ball = this.cells[i][j].balls[k];
-          if (ball.isVibrating) {
-            ball.vibrationSpeed++;
-            ball.vibrationSpeed %= 5;
-            if (ball.vibrationSpeed === 0) {
-              ball.currX = ball.startX + (Math.random() * 10 - 5);
-              ball.currY = ball.startY + (Math.random() * 10 - 5);
-            }
-          }
-          drawBall(ball, this.cells[i][j].color, this.ctx);
-        }
-      }
-    }
-    if(this.transitionBalls.length === 0) {
-      this.isTransitioning = false;
-      return;
-    }
-    for(let i = 0; i < this.transitionBalls.length; i++) {
-      let ball = this.transitionBalls[i];
-      let toRemove = false;
-      if(ball.dir === 'U') {
-        ball.currY -= SPEED.TRANSITION_BALL_SPEED;
-        if(ball.currY < ball.endY) toRemove = true;
-      } else if(ball.dir === 'D') {
-        ball.currY += SPEED.TRANSITION_BALL_SPEED;
-        if(ball.currY > ball.endY) toRemove = true;
-      } else if(ball.dir === 'R') {
-        ball.currX += SPEED.TRANSITION_BALL_SPEED;
-        if(ball.currX > ball.endX) toRemove = true;
-      } else {
-        ball.currX -= SPEED.TRANSITION_BALL_SPEED;
-        if(ball.currX < ball.endX) toRemove = true;
-      }
-      if(toRemove) {
-        this.addBallOnCell(ball.endR, ball.endC);
-        this.cells[ball.endR][ball.endC].color = this.currentColor;
-        this.transitionBalls = [...this.transitionBalls.slice(0, i), ...this.transitionBalls.slice(i + 1)];
-      } else {
-        drawBall(ball, this.currentColor, this.ctx);
-      }
-    }
-  }
+  
 
   createBall(row: number, col: number): Ball {
     let initialBallPos = getBallCoordinates(row, col, this.grid);
@@ -212,7 +192,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
     }
   }
 
-  createTransitionBall(startR: number, startC: number, endR: number, endC: number, dir: string): TransitionBall {
+  createTransitionBall(startR: number, startC: number, endR: number, endC: number, dir: Direction): TransitionBall {
     let coordinates = getBallCoordinates(endR, endC, this.grid);
     let startCoordinates = getBallCoordinates(startR, startC, this.grid);
     return {
@@ -235,7 +215,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
     this.cells[row][col].balls = [];
     let fr = [1, -1, 0, 0];
     let fc = [0, 0, 1, -1];
-    let dir = ['D', 'U', 'R', 'L'];
+    let dir: Direction[] = ['D', 'U', 'R', 'L'];
     for(let i = 0; i < 4; i++) {
       let vr = row + fr[i];
       let vc = col + fc[i];

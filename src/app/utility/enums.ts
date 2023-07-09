@@ -17,6 +17,6 @@ export enum GRID {
 }
 
 export enum SPEED {
-  VIBRATION_MOD = 10,
+  VIBRATION_MOD = 5,
   TRANSITION_BALL_SPEED = 5
 }

@@ -28,12 +28,13 @@ export interface Ball {
   vibrationSpeed: number
 }
 
+export type Direction = 'U' | 'D' | 'R' | 'L';
 export interface TransitionBall {
   startR: number,
   startC: number,
   currX: number,
   currY: number,
-  dir: string,
+  dir: Direction,
   endX: number,
   endY: number,
   endR: number,
