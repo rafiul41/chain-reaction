@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { Ball, Cell, Direction, Grid, TransitionBall } from '../../utility/interfaces';
 import { COLOR, GRID, SPEED } from '../../utility/enums';
-import { drawBall, drawGrid, drawLine, getBallCoordinates, isCornerCell, isEdgeCell, isRowColValid } from '../../utility/functions';
+import { drawBall, drawGrid, getBallCoordinates, isCornerCell, isEdgeCell, isRowColValid } from '../../utility/functions';
 
 @Component({
   selector: 'app-chain-reaction',
@@ -40,8 +40,6 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
 
   ballColors = [COLOR.RED, COLOR.GREEN, COLOR.BLUE, COLOR.WHITE, COLOR.PINK, COLOR.BROWN, COLOR.CYAN];
   currentColor: string;
-
-  cellCntForColor = [];
 
   constructor() {}
 
