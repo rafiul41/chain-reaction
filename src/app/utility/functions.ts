@@ -1,5 +1,5 @@
 import { COLOR } from './enums';
-import { Ball, Grid, Point, TransitionBall } from './interfaces';
+import { Ball, Cell, Direction, Grid, Point, TransitionBall } from './interfaces';
 
 export function drawLine(start: Point, end: Point, color: string, ctx: CanvasRenderingContext2D | null) {
   if (ctx) {
@@ -76,4 +76,41 @@ export function drawGrid(grid: Grid , ctx: CanvasRenderingContext2D | null) {
     let endY = i * grid.cellWidth + grid.padding;
     drawLine({ x: startX, y: startY }, { x: endX, y: endY }, COLOR.WHITE, ctx);
   }
+}
+
+export function getRowColFromCoordinate(x: number, y: number, grid: Grid) {
+  return {
+    row: Math.floor(y / grid.cellWidth),
+    col: Math.floor(x / grid.cellWidth)
+  };
+}
+
+export function createBall(row: number, col: number, grid: Grid, cells: Cell[][]): Ball {
+  let initialBallPos = getBallCoordinates(row, col, grid);
+  return {
+    radius: grid.cellWidth / 4,
+    startX: initialBallPos.x,
+    startY: initialBallPos.y,
+    currX: initialBallPos.x,
+    currY: initialBallPos.y,
+    isVibrating: cells[row][col].maxBallCnt === cells[row][col].balls.length + 1,
+    vibrationSpeed: 1,
+  };
+}
+
+export function createTransitionBall(startR: number, startC: number, endR: number, endC: number, dir: Direction, grid: Grid): TransitionBall {
+  let coordinates = getBallCoordinates(endR, endC, grid);
+  let startCoordinates = getBallCoordinates(startR, startC, grid);
+  return {
+    startR,
+    startC,
+    endX: coordinates.x,
+    endY: coordinates.y,
+    radius: grid.cellWidth / 4,
+    currX: startCoordinates.x,
+    currY: startCoordinates.y,
+    dir,
+    endR,
+    endC
+  };
 }

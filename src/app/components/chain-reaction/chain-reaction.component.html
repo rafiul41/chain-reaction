@@ -3,8 +3,8 @@
   <canvas (click)="onCellClick($event)" #canvas></canvas>
   <div style="margin-top: 20px; color: white">
     Current player's turn is
-    <span [style.color]="ballColors[playerInd]">{{
-      ballColors[playerInd]
+    <span [style.color]="players[playerInd].color">{{
+      players[playerInd].color
     }}</span>
   </div>
   <div *ngIf="isGameOver">GAME OVER PLEASE RESTART</div>

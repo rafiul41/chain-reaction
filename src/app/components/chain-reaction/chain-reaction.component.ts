@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 import { Ball, Cell, Direction, Grid, TransitionBall } from '../../utility/interfaces';
 import { COLOR, GRID, SPEED } from '../../utility/enums';
-import { drawBall, drawGrid, getBallCoordinates, isCornerCell, isEdgeCell, isRowColValid } from '../../utility/functions';
+import { createBall, createTransitionBall, drawBall, drawGrid, getRowColFromCoordinate, isCornerCell, isEdgeCell, isRowColValid } from '../../utility/functions';
 
 @Component({
   selector: 'app-chain-reaction',
@@ -38,13 +38,35 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
   playerCnt = 2;
   playerInd = 0;
 
-  ballColors = [COLOR.RED, COLOR.GREEN, COLOR.BLUE, COLOR.WHITE, COLOR.PINK, COLOR.BROWN, COLOR.CYAN];
+  players = [{
+    color: COLOR.RED,
+    cellCount: 0
+  }, {
+    color: COLOR.GREEN,
+    cellCount: 0
+  }, {
+    color: COLOR.BLUE,
+    cellCount: 0
+  }, {
+    color: COLOR.WHITE,
+    cellCount: 0
+  }, {
+    color: COLOR.PINK,
+    cellCount: 0
+  }, {
+    color: COLOR.BROWN,
+    cellCount: 0
+  }, {
+    color: COLOR.CYAN,
+    cellCount: 0
+  }];
+
   currentColor: string;
 
   constructor() {}
 
   ngOnInit(): void {
-    this.ballColors = this.ballColors.slice(0, this.playerCnt);
+    this.players = this.players.slice(0, this.playerCnt);
     this.initializeGridAndCanvas();
     this.animate();
   }
@@ -145,21 +167,6 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
     this.transitionBalls = [];
   }
 
-  
-
-  createBall(row: number, col: number): Ball {
-    let initialBallPos = getBallCoordinates(row, col, this.grid);
-    return {
-      radius: this.grid.cellWidth / 4,
-      startX: initialBallPos.x,
-      startY: initialBallPos.y,
-      currX: initialBallPos.x,
-      currY: initialBallPos.y,
-      isVibrating: this.cells[row][col].maxBallCnt === this.cells[row][col].balls.length + 1,
-      vibrationSpeed: 1,
-    };
-  }
-
   vibrateAllBallsInCell(row: number, col: number) {
     for(let i = 0; i < this.cells[row][col].balls.length; i++) {
       this.cells[row][col].balls[i].isVibrating = true;
@@ -190,23 +197,6 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
     }
   }
 
-  createTransitionBall(startR: number, startC: number, endR: number, endC: number, dir: Direction): TransitionBall {
-    let coordinates = getBallCoordinates(endR, endC, this.grid);
-    let startCoordinates = getBallCoordinates(startR, startC, this.grid);
-    return {
-      startR,
-      startC,
-      endX: coordinates.x,
-      endY: coordinates.y,
-      radius: this.grid.cellWidth / 4,
-      currX: startCoordinates.x,
-      currY: startCoordinates.y,
-      dir,
-      endR,
-      endC
-    };
-  }
-
   burstCell(row: number, col: number) {
     this.isTransitioning = true;
     this.cells[row][col].color = '';
@@ -218,7 +208,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
       let vr = row + fr[i];
       let vc = col + fc[i];
       if(vr >= 0 && vc >= 0 && vr < this.grid.rowCnt && vc < this.grid.colCnt) {
-        this.transitionBalls.push(this.createTransitionBall(row, col, vr, vc, dir[i]));
+        this.transitionBalls.push(createTransitionBall(row, col, vr, vc, dir[i], this.grid));
       }
     }
   }
@@ -231,7 +221,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
     
     this.cells[row][col].color = this.currentColor;
 
-    const ball: Ball = this.createBall(row, col);
+    const ball: Ball = createBall(row, col, this.grid, this.cells);
     if(ball.isVibrating) this.vibrateAllBallsInCell(row, col);
     this.cells[row][col].balls.push(ball);
     if(this.cells[row][col].balls.length > 0) {
@@ -239,20 +229,14 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
     }
   }
 
-  getRowColFromCoordinate(x: number, y: number) {
-    return {
-      row: Math.floor(y / this.grid.cellWidth),
-      col: Math.floor(x / this.grid.cellWidth)
-    };
-  }
-
   onCellClick(e: any) {
+    console.log('PLAYER STATE:', this.players);
     if(this.isTransitioning) return;
     const gridCoordinate = {
       x: e.offsetX - this.grid.padding,
       y: e.offsetY - this.grid.padding,
     };
-    let rowCol = this.getRowColFromCoordinate(gridCoordinate.x, gridCoordinate.y);
+    let rowCol = getRowColFromCoordinate(gridCoordinate.x, gridCoordinate.y, this.grid);
     let row = rowCol.row;
     let col = rowCol.col;
     if (!isRowColValid(row, col, this.grid)) {
@@ -260,11 +244,11 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if(this.cells[row][col].balls.length > 0 && this.cells[row][col].color !== this.ballColors[this.playerInd]) {
+    if(this.cells[row][col].balls.length > 0 && this.cells[row][col].color !== this.players[this.playerInd].color) {
       return;
     }
 
-    this.currentColor = this.ballColors[this.playerInd];
+    this.currentColor = this.players[this.playerInd].color;
     this.addBallOnCell(row, col);
     this.goToNextPlayer();
   }
