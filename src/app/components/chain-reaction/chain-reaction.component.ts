@@ -34,8 +34,9 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
   isGameOver = false;
 
   hasAllPlayersClicked = false;
+  hasWentToNextPlayer = true;
 
-  playerCnt = 2;
+  playerCnt = 3;
   playerInd = 0;
 
   players = [{
@@ -101,6 +102,10 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
     }
     if(this.transitionBalls.length === 0) {
       this.isTransitioning = false;
+      if(!this.hasWentToNextPlayer) {
+        this.goToNextPlayer();
+        this.hasWentToNextPlayer = true;
+      }
       return;
     }
     for(let i = 0; i < this.transitionBalls.length; i++) {
@@ -227,6 +232,11 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
     if(this.cells[row][col].balls.length > 0) {
       this.updateCellBallPositions(row, col);
     }
+
+    if(!this.hasWentToNextPlayer && !this.isTransitioning) {
+      this.goToNextPlayer();
+      this.hasWentToNextPlayer = true;
+    }
   }
 
   onCellClick(e: any) {
@@ -243,14 +253,14 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
       console.log('PLEASE CLICK ON A CELL!');
       return;
     }
-
+    
     if(this.cells[row][col].balls.length > 0 && this.cells[row][col].color !== this.players[this.playerInd].color) {
       return;
     }
-
+    
+    this.hasWentToNextPlayer = false;
     this.currentColor = this.players[this.playerInd].color;
     this.addBallOnCell(row, col);
-    this.goToNextPlayer();
   }
 
   goToNextPlayer() {
