@@ -7,5 +7,10 @@
       players[playerInd].color
     }}</span>
   </div>
-  <div *ngIf="isGameOver">GAME OVER PLEASE RESTART</div>
+  <div *ngIf="isGameOver">
+    <div>
+      GAME OVER PLEASE RESTART
+    </div>
+    <div>{{currentColor}} WON</div>
+  </div>
 </div>
