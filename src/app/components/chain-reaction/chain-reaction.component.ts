@@ -1,6 +1,7 @@
 import {
   Component,
   ElementRef,
+  HostListener,
   OnDestroy,
   OnInit,
   ViewChild,
@@ -51,7 +52,7 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
   hasAllPlayersClicked = false;
   hasWentToNextPlayer = true;
 
-  playerCnt = 3;
+  playerCnt = 2;
   playerInd = 0;
 
   players = [
@@ -95,6 +96,26 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
   currentColor: string;
 
   constructor() {}
+
+  @HostListener('window:resize', ['$event'])
+  onResize() {
+    this.updateCellWidth();
+  }
+
+  updateCellWidth() {
+    if(window.innerWidth < 511) {
+      let gridWidth = window.innerWidth;
+      this.grid.cellWidth = gridWidth / this.grid.colCnt;
+    }
+    let canvasWidth =
+      this.grid.cellWidth * this.grid.colCnt + 2 * this.grid.padding;
+    let canvasHeight =
+      this.grid.cellWidth * this.grid.rowCnt + 2 * this.grid.padding;
+    this.canvas.nativeElement.width = canvasWidth;
+    this.canvas.nativeElement.height = canvasHeight;
+    this.grid.width = canvasWidth;
+    this.grid.height = canvasHeight;
+  }
 
   ngOnInit(): void {
     this.players = this.players.slice(0, this.playerCnt);
@@ -189,19 +210,12 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
     this.grid = {
       rowCnt: this.rowCnt,
       colCnt: this.colCnt,
-      cellWidth: GRID.CELL_WIDTH,
+      cellWidth: GRID.DEFAULT_CELL_WIDTH,
       width: 0,
       height: 0,
       padding: GRID.PADDING,
     };
-    let canvasWidth =
-      this.grid.cellWidth * this.grid.colCnt + 2 * this.grid.padding;
-    let canvasHeight =
-      this.grid.cellWidth * this.grid.rowCnt + 2 * this.grid.padding;
-    this.canvas.nativeElement.width = canvasWidth;
-    this.canvas.nativeElement.height = canvasHeight;
-    this.grid.width = canvasWidth;
-    this.grid.height = canvasHeight;
+    this.updateCellWidth();
     this.ctx = this.canvas.nativeElement.getContext('2d');
 
     let initialBallConfig: any = [];
@@ -329,5 +343,9 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
       this.hasAllPlayersClicked = true;
     }
     this.playerInd %= this.playerCnt;
+  }
+
+  restart() {
+    location.reload();
   }
 }

@@ -1,6 +1,7 @@
 .app {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 50px 0 calc(100vh - 50px);
+  align-items: stretch;
   .top-bar {
     display: flex;
     justify-content: center;

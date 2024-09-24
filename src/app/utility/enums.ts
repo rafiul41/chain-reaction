@@ -12,7 +12,7 @@ export enum COLOR {
 export enum GRID {
   ROW_CNT = 2,
   COL_CNT = 2,
-  CELL_WIDTH = 100,
+  DEFAULT_CELL_WIDTH = 100,
   PADDING = 5
 }
 

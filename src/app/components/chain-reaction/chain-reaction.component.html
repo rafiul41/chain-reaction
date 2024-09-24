@@ -1,6 +1,9 @@
 <div class="chain-reaction">
-  <button routerLink="/home" style="margin-bottom: 50px;">Go to Home</button>
-  <canvas (click)="onCellClick($event)" #canvas></canvas>
+  <button routerLink="/home" class="fancy-button-1" style="margin-bottom: 50px;">Go to Home</button>
+  <button (click)="restart()" class="fancy-button-1" style="margin-bottom: 50px;">Restart</button>
+  <div class="canvas-wrapper">
+    <canvas (click)="onCellClick($event)" #canvas></canvas>
+  </div>
   <div style="margin-top: 20px; color: white">
     Current player's turn is
     <span [style.color]="players[playerInd].color">{{
