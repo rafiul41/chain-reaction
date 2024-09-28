@@ -57,3 +57,16 @@
   text-align: center;
   white-space: nowrap;
 }
+
+@keyframes text-vibrate {
+  0% { transform: translateX(0) }
+  25% { transform: translateX(10px) }
+  50% { transform: translateX(-10px) }
+  75% { transform: translateX(10px) }
+  100% { transform: translateX(0) }
+ }
+
+.text-vibrate {
+  display: inline-block;
+  animation: text-vibrate 0.2s linear infinite;
+}

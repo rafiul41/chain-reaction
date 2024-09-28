@@ -1,14 +1,21 @@
 <div class="chain-reaction">
-  <button routerLink="/home" class="fancy-button-1" style="margin-bottom: 50px;">Go to Home</button>
-  <button (click)="restart()" class="fancy-button-1" style="margin-bottom: 50px;">Restart</button>
+  <div class="top">
+    <button routerLink="/home" class="fancy-button-1" style="margin-bottom: 50px;">Go to Home</button>
+    <button (click)="restart()" class="fancy-button-1" style="margin-bottom: 50px;">Restart</button>
+  </div>
+  <div class="info-section">
+    <div [ngClass]="{'text-vibrate': isMoveTextToVibrate}">
+      The move belongs to
+      <span [style.color]="players[playerInd].color">{{
+        players[playerInd].color
+      }}</span>
+    </div>
+    <div>
+      Number of moves completed: {{turnCnt}}
+    </div>
+  </div>
   <div class="canvas-wrapper">
     <canvas (click)="onCellClick($event)" #canvas></canvas>
-  </div>
-  <div style="margin-top: 20px; color: white">
-    Current player's turn is
-    <span [style.color]="players[playerInd].color">{{
-      players[playerInd].color
-    }}</span>
   </div>
   <div *ngIf="isGameOver">
     <div>

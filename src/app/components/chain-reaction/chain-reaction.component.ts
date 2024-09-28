@@ -54,6 +54,9 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
 
   playerCnt = 2;
   playerInd = 0;
+  turnCnt = 0;
+
+  isMoveTextToVibrate = false;
 
   players = [
     {
@@ -324,17 +327,25 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
       console.log('PLEASE CLICK ON A CELL!');
       return;
     }
-
     if (
       this.cells[row][col].balls.length > 0 &&
       this.cells[row][col].color !== this.players[this.playerInd].color
     ) {
+      this.vibrateMoveText();
       return;
     }
+    this.turnCnt++;
 
     this.hasWentToNextPlayer = false;
     this.currentColor = this.players[this.playerInd].color;
     this.addBallOnCell(row, col);
+  }
+
+  vibrateMoveText() {
+    this.isMoveTextToVibrate = true;
+    setTimeout(() => {
+      this.isMoveTextToVibrate = false;
+    }, 500);
   }
 
   goToNextPlayer() {
