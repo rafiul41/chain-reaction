@@ -1,9 +1,24 @@
 <div class="home">
   <div class="intro">Welcome to the Chain reaction Game</div>
-  <div>Please checkout the <a (click)="goToRules()">game rules</a>  before playing</div>
-  <button style="margin-top: 100px;" class="fancy-button-1" (click)="goToGame()">
+  <div>
+    Please checkout the <a (click)="goToRules()">game rules</a> before playing
+  </div>
+  <button style="margin-top: 100px" class="fancy-button-1" (click)="goToGame()">
     Local 1v1
   </button>
-  <button style="margin-top: 100px;" class="fancy-button-1" disabled>Play Online</button>
-  <div>Coming Soon !</div>
+  <button
+    (mouseenter)="startVibrate()"
+    (mouseleave)="endVibrate()"
+    style="margin-top: 100px"
+    class="fancy-button-1"
+    disabled
+  >
+    Play Online
+  </button>
+  <div
+    [ngClass]="{ 'text-vibrate': isComingSoonVibrate }"
+    style="margin-top: 10px"
+  >
+    Coming Soon !
+  </div>
 </div>

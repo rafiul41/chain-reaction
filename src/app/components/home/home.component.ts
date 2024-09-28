@@ -8,6 +8,8 @@ import { Router } from '@angular/router';
 })
 export class HomeComponent implements OnInit {
 
+  isComingSoonVibrate = false;
+
   constructor(
     private router: Router
   ) { }
@@ -21,5 +23,13 @@ export class HomeComponent implements OnInit {
 
   goToRules() {
     this.router.navigate(['/game-rules']);
+  }
+
+  startVibrate() {
+    this.isComingSoonVibrate = true;
+  }
+
+  endVibrate() {
+    this.isComingSoonVibrate = false;
   }
 }
