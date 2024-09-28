@@ -1,0 +1,19 @@
+.game-rules {
+  display: flex;
+  justify-content: center;
+
+  .game-rules-container {
+    padding: 15px;
+    max-width: 800px;
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .rules-container {
+      margin-top: 30px;
+    }
+  }
+}

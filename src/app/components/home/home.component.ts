@@ -18,4 +18,8 @@ export class HomeComponent implements OnInit {
   goToGame() {
     this.router.navigate(['/chain-reaction']);
   }
+
+  goToRules() {
+    this.router.navigate(['/game-rules']);
+  }
 }

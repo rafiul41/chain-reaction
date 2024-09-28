@@ -1,0 +1,14 @@
+<div class="game-rules">
+  <div class="game-rules-container">
+    <div class="top">
+      <div class="title">Game Rules</div>
+      <button class="fancy-button-1" (click)="goBack()">Go Back</button>
+    </div>
+    <div class="rules-container">
+      <div style="margin-top: 10px" *ngFor="let rule of rules; let ind = index">
+        <strong>{{ ind + 1 + ": " }}</strong
+        >{{ rule }}
+      </div>
+    </div>
+  </div>
+</div>
