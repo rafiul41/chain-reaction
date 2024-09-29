@@ -1,6 +1,6 @@
 <div class="chain-reaction">
   <div class="top">
-    <button routerLink="/home" class="fancy-button-1" style="margin-bottom: 50px;">Go to Home</button>
+    <button (click)="goHome()" class="fancy-button-1" style="margin-bottom: 50px;">Go Back</button>
     <button (click)="restart()" class="fancy-button-1" style="margin-bottom: 50px;">Restart</button>
   </div>
   <div class="info-section">
@@ -10,7 +10,7 @@
         players[playerInd].color
       }}</span>
     </div>
-    <div>
+    <div style="margin-bottom: 20px;">
       Number of moves completed: {{turnCnt}}
     </div>
   </div>
@@ -24,3 +24,14 @@
     <div>{{currentColor}} WON</div>
   </div>
 </div>
+
+<dialog id="confirmation-modal" [ngStyle]="{'display': isModalShowing ? 'flex' : 'none'}">
+  <div class="modal-container">
+    <h1>Are you sure?</h1>
+    <div>All of your game progress will be lost.</div>
+    <div>
+      <button (click)="closeModal()" class="fancy-button-1">No</button>
+      <button (click)="doModalAction()" class="fancy-button-1">Yes</button>
+    </div>
+  </div>
+</dialog>

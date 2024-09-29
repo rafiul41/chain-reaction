@@ -1,4 +1,5 @@
 import {
+  AfterViewInit,
   Component,
   ElementRef,
   HostListener,
@@ -24,13 +25,16 @@ import {
   isEdgeCell,
   isRowColValid,
 } from '../../utility/functions';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-chain-reaction',
   templateUrl: './chain-reaction.component.html',
   styleUrls: ['./chain-reaction.component.scss'],
 })
-export class ChainReactionComponent implements OnInit, OnDestroy {
+export class ChainReactionComponent
+  implements OnInit, OnDestroy, AfterViewInit
+{
   @ViewChild('canvas', { static: true })
   canvas: ElementRef<HTMLCanvasElement>;
 
@@ -98,15 +102,23 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
 
   currentColor: string;
 
-  constructor() {}
+  confirmationModal: any;
+  isModalShowing = false;
+  modalAction: 'restart' | 'go back';
+
+  constructor(private router: Router) {}
 
   @HostListener('window:resize', ['$event'])
   onResize() {
     this.updateCellWidth();
   }
 
+  ngAfterViewInit(): void {
+    this.confirmationModal = document.getElementById('confirmation-modal');
+  }
+
   updateCellWidth() {
-    if(window.innerWidth < 511) {
+    if (window.innerWidth < 511) {
       let gridWidth = window.innerWidth;
       this.grid.cellWidth = gridWidth / this.grid.colCnt;
     }
@@ -357,6 +369,38 @@ export class ChainReactionComponent implements OnInit, OnDestroy {
   }
 
   restart() {
-    location.reload();
+    if (!this.isGameOver && this.turnCnt > 0 && !this.isModalShowing) {
+      this.modalAction = 'restart';
+      this.showModal();
+    } else {
+      location.reload();
+    }
+  }
+
+  goHome() {
+    if (!this.isGameOver && this.turnCnt > 0 && !this.isModalShowing) {
+      this.modalAction = 'go back';
+      this.showModal();
+    } else {
+      this.router.navigate(['/home']);  
+    }  
+  }
+
+  showModal() {
+    this.isModalShowing = true;
+    this.confirmationModal.showModal();
+  }
+
+  closeModal() {
+    this.isModalShowing = false;
+    this.confirmationModal.close();
+  }
+
+  doModalAction() {
+    if(this.modalAction === 'go back') {
+      this.goHome();
+    } else {
+      this.restart();
+    }
   }
 }
