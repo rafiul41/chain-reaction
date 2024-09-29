@@ -172,7 +172,11 @@ export class ChainReactionComponent
       }
     }
 
-    if (set.size === 1 && this.hasAllPlayersClicked) {
+    if (
+      set.size === 1 &&
+      this.hasAllPlayersClicked &&
+      this.transitionBalls.length === 0
+    ) {
       this.isGameOver = true;
     }
 
@@ -184,6 +188,7 @@ export class ChainReactionComponent
       }
       return;
     }
+
     for (let i = 0; i < this.transitionBalls.length; i++) {
       let ball = this.transitionBalls[i];
       let toRemove = false;
@@ -382,8 +387,8 @@ export class ChainReactionComponent
       this.modalAction = 'go back';
       this.showModal();
     } else {
-      this.router.navigate(['/home']);  
-    }  
+      this.router.navigate(['/home']);
+    }
   }
 
   showModal() {
@@ -397,7 +402,7 @@ export class ChainReactionComponent
   }
 
   doModalAction() {
-    if(this.modalAction === 'go back') {
+    if (this.modalAction === 'go back') {
       this.goHome();
     } else {
       this.restart();

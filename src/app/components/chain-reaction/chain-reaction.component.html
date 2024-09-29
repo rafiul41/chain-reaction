@@ -1,31 +1,49 @@
 <div class="chain-reaction">
   <div class="top">
-    <button (click)="goHome()" class="fancy-button-1" style="margin-bottom: 50px;">Go Back</button>
-    <button (click)="restart()" class="fancy-button-1" style="margin-bottom: 50px;">Restart</button>
+    <button
+      (click)="goHome()"
+      class="fancy-button-1"
+      style="margin-bottom: 50px"
+    >
+      Go Back
+    </button>
+    <button
+      (click)="restart()"
+      class="fancy-button-1"
+      style="margin-bottom: 50px"
+    >
+      Restart
+    </button>
   </div>
   <div class="info-section">
-    <div [ngClass]="{'text-vibrate': isMoveTextToVibrate}">
+    <div [ngClass]="{ 'text-vibrate': isMoveTextToVibrate }">
       The move belongs to
       <span [style.color]="players[playerInd].color">{{
         players[playerInd].color
       }}</span>
     </div>
-    <div style="margin-bottom: 20px;">
-      Number of moves completed: {{turnCnt}}
+    <div style="margin-bottom: 20px">
+      Number of moves completed: {{ turnCnt }}
+    </div>
+    <div *ngIf="isGameOver" style="margin-bottom: 20px">
+      <div>GAME OVER !!!</div>
+      <div>Please restart or go back</div>
+      <div>
+        <span [style.color]="currentColor">{{ currentColor }}</span> WON !!
+        Since all the orbs belongs to
+        <span [style.color]="currentColor">{{ currentColor }}</span>
+      </div>
     </div>
   </div>
   <div class="canvas-wrapper">
     <canvas (click)="onCellClick($event)" #canvas></canvas>
   </div>
-  <div *ngIf="isGameOver">
-    <div>
-      GAME OVER PLEASE RESTART
-    </div>
-    <div>{{currentColor}} WON</div>
-  </div>
 </div>
 
-<dialog id="confirmation-modal" [ngStyle]="{'display': isModalShowing ? 'flex' : 'none'}">
+<dialog
+  id="confirmation-modal"
+  [ngStyle]="{ display: isModalShowing ? 'flex' : 'none' }"
+>
   <div class="modal-container">
     <h1>Are you sure?</h1>
     <div>All of your game progress will be lost.</div>
