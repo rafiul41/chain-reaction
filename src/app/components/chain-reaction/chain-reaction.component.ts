@@ -28,6 +28,7 @@ import {
 import { Router } from '@angular/router';
 
 @Component({
+  standalone: false,
   selector: 'app-chain-reaction',
   templateUrl: './chain-reaction.component.html',
   styleUrls: ['./chain-reaction.component.scss'],
@@ -108,7 +109,7 @@ export class ChainReactionComponent
 
   constructor(private router: Router) {}
 
-  @HostListener('window:resize', ['$event'])
+  @HostListener('window:resize')
   onResize() {
     this.updateCellWidth();
   }
