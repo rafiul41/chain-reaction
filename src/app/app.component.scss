@@ -1,11 +1,58 @@
 .app {
-  display: grid;
-  grid-template-rows: 50px 0 calc(100vh - 50px);
-  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+}
 
-  .top-bar {
+.top-bar {
+  height: 56px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10, 10, 20, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  .top-bar-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    height: 100%;
     display: flex;
-    justify-content: center;
-    align-self: center;
+    align-items: center;
+    padding: 0 1.5rem;
   }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+
+    .logo-icon {
+      font-size: 1.4rem;
+      background: linear-gradient(135deg, #7c3aed, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #a78bfa, #67e8f9);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  }
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }

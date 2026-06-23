@@ -1,19 +1,62 @@
 .game-rules {
   display: flex;
   justify-content: center;
+  padding: 2rem 1.5rem;
 
   .game-rules-container {
-    padding: 15px;
-    max-width: 800px;
+    width: 100%;
+    max-width: 700px;
 
     .top {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
     }
 
     .rules-container {
-      margin-top: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .rule-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      transition: border-color 0.2s ease;
+
+      &:hover {
+        border-color: rgba(124, 58, 237, 0.3);
+      }
+
+      .rule-number {
+        flex-shrink: 0;
+        width: 1.5rem;
+        height: 1.5rem;
+        background: rgba(124, 58, 237, 0.15);
+        border: 1px solid rgba(124, 58, 237, 0.3);
+        border-radius: 6px;
+        color: #a78bfa;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 0.05rem;
+      }
+
+      .rule-text {
+        font-size: 0.92rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
     }
   }
 }

@@ -1,24 +1,36 @@
 <div class="home">
-  <div class="intro">Welcome to the Chain reaction Game</div>
-  <div>
-    Please checkout the <a (click)="goToRules()">game rules</a> before playing
+  <div class="hero">
+    <div class="glow-orb"></div>
+    <h2 class="hero-title">Chain Reaction</h2>
+    <p class="hero-subtitle">
+      A strategic turn-based game of orbs, explosions, and domination
+    </p>
+    <p class="hero-hint">
+      Check out the <a (click)="goToRules()">game rules</a> before playing
+    </p>
   </div>
-  <button style="margin-top: 100px" class="fancy-button-1" (click)="goToGame()">
-    Local 1v1
-  </button>
-  <button
-    (mouseenter)="startVibrate()"
-    (mouseleave)="endVibrate()"
-    style="margin-top: 100px"
-    class="fancy-button-1"
-    disabled
-  >
-    Play Online
-  </button>
-  <div
-    [ngClass]="{ 'text-vibrate': isComingSoonVibrate }"
-    style="margin-top: 10px"
-  >
-    Coming Soon !
+
+  <div class="actions">
+    <button class="action-btn primary" (click)="goToGame()">
+      <span class="btn-icon">⚔</span>
+      <span class="btn-content">
+        <span class="btn-label">Local 1v1</span>
+        <span class="btn-sub">Play on this device</span>
+      </span>
+    </button>
+
+    <button
+      class="action-btn secondary"
+      disabled
+      (mouseenter)="startVibrate()"
+      (mouseleave)="endVibrate()"
+    >
+      <span class="btn-icon">🌐</span>
+      <span class="btn-content">
+        <span class="btn-label">Play Online</span>
+        <span class="btn-sub" [ngClass]="{ 'text-vibrate': isComingSoonVibrate }">Coming Soon</span>
+      </span>
+      <span class="badge">Soon</span>
+    </button>
   </div>
 </div>

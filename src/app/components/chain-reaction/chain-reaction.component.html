@@ -1,40 +1,32 @@
 <div class="chain-reaction">
-  <div class="top">
-    <button
-      (click)="goHome()"
-      class="fancy-button-1"
-      style="margin-bottom: 50px"
-    >
-      Go Back
+  <div class="game-bar">
+    <button (click)="goHome()" class="game-btn">
+      ← Home
     </button>
-    <button
-      (click)="restart()"
-      class="fancy-button-1"
-      style="margin-bottom: 50px"
-    >
-      Restart
+
+    <div class="turn-indicator" [style.--player-color]="players[playerInd].color">
+      <span class="turn-dot"></span>
+      <span class="turn-text" [ngClass]="{ 'text-vibrate': isMoveTextToVibrate }">
+        <span [style.color]="players[playerInd].color">{{ players[playerInd].color }}</span>'s turn
+      </span>
+      <span class="turn-count">Move #{{ turnCnt + 1 }}</span>
+    </div>
+
+    <button (click)="restart()" class="game-btn">
+      ↺ Restart
     </button>
   </div>
-  <div class="info-section">
-    <div [ngClass]="{ 'text-vibrate': isMoveTextToVibrate }">
-      The move belongs to
-      <span [style.color]="players[playerInd].color">{{
-        players[playerInd].color
-      }}</span>
-    </div>
-    <div style="margin-bottom: 20px">
-      Number of moves completed: {{ turnCnt }}
-    </div>
-    <div *ngIf="isGameOver" style="margin-bottom: 20px">
-      <div>GAME OVER !!!</div>
-      <div>Please restart or go back</div>
-      <div>
-        <span [style.color]="currentColor">{{ currentColor }}</span> WON !!
-        Since all the orbs belong to
-        <span [style.color]="currentColor">{{ currentColor }}</span>
+
+  <div *ngIf="isGameOver" class="game-over-banner">
+    <div class="game-over-inner">
+      <div class="game-over-label">Game Over</div>
+      <div class="game-over-winner" [style.color]="currentColor">
+        {{ currentColor }} wins!
       </div>
+      <div class="game-over-sub">All orbs belong to {{ currentColor }}</div>
     </div>
   </div>
+
   <div class="canvas-wrapper">
     <canvas (click)="onCellClick($event)" #canvas></canvas>
   </div>
@@ -44,12 +36,14 @@
   id="confirmation-modal"
   [ngStyle]="{ display: isModalShowing ? 'flex' : 'none' }"
 >
-  <div class="modal-container">
-    <h1>Are you sure?</h1>
-    <div>All of your game progress will be lost.</div>
-    <div>
-      <button (click)="closeModal()" class="fancy-button-1">No</button>
-      <button (click)="doModalAction()" class="fancy-button-1">Yes</button>
+  <div class="modal-backdrop" (click)="closeModal()"></div>
+  <div class="modal-card">
+    <div class="modal-icon">⚠</div>
+    <h2 class="modal-title">Leave game?</h2>
+    <p class="modal-body">All progress will be lost.</p>
+    <div class="modal-actions">
+      <button (click)="closeModal()" class="fancy-button-1">Cancel</button>
+      <button (click)="doModalAction()" class="modal-confirm-btn">Confirm</button>
     </div>
   </div>
 </dialog>
