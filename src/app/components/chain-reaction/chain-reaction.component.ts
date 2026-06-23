@@ -1,5 +1,6 @@
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   HostListener,
@@ -17,6 +18,7 @@ import {
   isRowColValid,
 } from '../../utility/functions';
 import { Router } from '@angular/router';
+import { Subscription, timer } from 'rxjs';
 import { GameEngineService } from '../../services/game-engine.service';
 
 @Component({
@@ -37,6 +39,7 @@ export class ChainReactionComponent
   isTransitioning = false;
   transitionBalls: TransitionBall[] = [];
   hasWentToNextPlayer = true;
+  private gameOverTimer?: Subscription;
 
   isMoveTextToVibrate = false;
 
@@ -45,13 +48,27 @@ export class ChainReactionComponent
   modalAction: 'restart' | 'go back';
 
   // Template-facing getters — delegate to engine so templates need no change.
-  get players() { return this.engine.players; }
-  get playerInd() { return this.engine.playerInd; }
-  get turnCnt() { return this.engine.turnCnt; }
-  get isGameOver() { return this.engine.isGameOver; }
-  get currentColor() { return this.engine.currentColor; }
+  get players() {
+    return this.engine.players;
+  }
+  get playerInd() {
+    return this.engine.playerInd;
+  }
+  get turnCnt() {
+    return this.engine.turnCnt;
+  }
+  get isGameOver() {
+    return this.engine.isGameOver;
+  }
+  get currentColor() {
+    return this.engine.currentColor;
+  }
 
-  constructor(private router: Router, public engine: GameEngineService) {}
+  constructor(
+    private router: Router,
+    public engine: GameEngineService,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   @HostListener('window:resize')
   onResize() {
@@ -66,7 +83,7 @@ export class ChainReactionComponent
     this.engine.initGame(
       this.engine.rowCnt,
       this.engine.colCnt,
-      this.engine.allPlayers.slice(0, this.engine.playerCnt)
+      this.engine.allPlayers.slice(0, this.engine.playerCnt),
     );
     this.updateCellWidth();
     this.ctx = this.canvas.nativeElement.getContext('2d');
@@ -76,6 +93,7 @@ export class ChainReactionComponent
 
   ngOnDestroy(): void {
     cancelAnimationFrame(this.animationId);
+    this.gameOverTimer?.unsubscribe();
   }
 
   updateCellWidth() {
@@ -111,8 +129,10 @@ export class ChainReactionComponent
             ball.vibrationSpeed++;
             ball.vibrationSpeed %= SPEED.VIBRATION_MOD;
             if (ball.vibrationSpeed === 0) {
-              ball.currX = ball.startX + (Math.random() * 10 - SPEED.VIBRATION_MOD);
-              ball.currY = ball.startY + (Math.random() * 10 - SPEED.VIBRATION_MOD);
+              ball.currX =
+                ball.startX + (Math.random() * 10 - SPEED.VIBRATION_MOD);
+              ball.currY =
+                ball.startY + (Math.random() * 10 - SPEED.VIBRATION_MOD);
             }
           }
           drawBall(ball, cells[i][j].color, this.ctx);
@@ -120,19 +140,17 @@ export class ChainReactionComponent
       }
     }
 
+    const { colorsOnBoard, currentColor } = this.engine;
+    const noOpponentCells = colorsOnBoard.size === 0 || (colorsOnBoard.size === 1 && colorsOnBoard.has(currentColor));
+    if (this.engine.hasAllPlayersClicked && noOpponentCells && !this.gameOverTimer) {
+      this.gameOverTimer = timer(700).subscribe(() => {
+        this.engine.isGameOver = true;
+        this.cdr.detectChanges();
+      });
+    }
+
     if (this.transitionBalls.length === 0) {
       this.isTransitioning = false;
-      if (this.engine.hasAllPlayersClicked) {
-        const colorsOnBoard = new Set<string>();
-        for (let i = 0; i < cells.length; i++) {
-          for (let j = 0; j < cells[i].length; j++) {
-            if (cells[i][j].color !== '') colorsOnBoard.add(cells[i][j].color);
-          }
-        }
-        if (colorsOnBoard.size === 1) {
-          this.engine.isGameOver = true;
-        }
-      }
       if (!this.hasWentToNextPlayer && !this.engine.isGameOver) {
         this.engine.goToNextPlayer();
         this.hasWentToNextPlayer = true;
@@ -162,7 +180,6 @@ export class ChainReactionComponent
           ...this.transitionBalls.slice(0, i),
           ...this.transitionBalls.slice(i + 1),
         ];
-        this.engine.cells[ball.endR][ball.endC].color = this.engine.currentColor;
         this.applyMoveWithAnimation(ball.endR, ball.endC);
         i--;
       } else {
@@ -178,7 +195,7 @@ export class ChainReactionComponent
       this.isTransitioning = true;
       for (const { r, c, dir } of result.neighbors) {
         this.transitionBalls.push(
-          createTransitionBall(row, col, r, c, dir, this.engine.grid)
+          createTransitionBall(row, col, r, c, dir, this.engine.grid),
         );
       }
     }
@@ -193,7 +210,7 @@ export class ChainReactionComponent
     const { row, col } = getRowColFromCoordinate(
       gridCoordinate.x,
       gridCoordinate.y,
-      this.engine.grid
+      this.engine.grid,
     );
     if (!isRowColValid(row, col, this.engine.grid)) {
       console.log('PLEASE CLICK ON A CELL!');
@@ -224,7 +241,11 @@ export class ChainReactionComponent
   }
 
   restart() {
-    if (!this.engine.isGameOver && this.engine.turnCnt > 0 && !this.isModalShowing) {
+    if (
+      !this.engine.isGameOver &&
+      this.engine.turnCnt > 0 &&
+      !this.isModalShowing
+    ) {
       this.modalAction = 'restart';
       this.showModal();
     } else {
@@ -233,7 +254,11 @@ export class ChainReactionComponent
   }
 
   goHome() {
-    if (!this.engine.isGameOver && this.engine.turnCnt > 0 && !this.isModalShowing) {
+    if (
+      !this.engine.isGameOver &&
+      this.engine.turnCnt > 0 &&
+      !this.isModalShowing
+    ) {
       this.modalAction = 'go back';
       this.showModal();
     } else {

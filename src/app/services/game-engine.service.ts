@@ -26,6 +26,7 @@ export class GameEngineService {
   hasAllPlayersClicked = false;
   isGameOver = false;
   currentColor = '';
+  colorsOnBoard = new Map<string, number>();
 
   initGame(rowCnt: number, colCnt: number, players: Player[]): void {
     this.players = players;
@@ -35,6 +36,7 @@ export class GameEngineService {
     this.hasAllPlayersClicked = false;
     this.isGameOver = false;
     this.currentColor = '';
+    this.colorsOnBoard = new Map<string, number>();
     this.grid = {
       rowCnt,
       colCnt,
@@ -72,6 +74,18 @@ export class GameEngineService {
     );
   }
 
+  private trackColorChange(oldColor: string, newColor: string): void {
+    if (oldColor === newColor) return;
+    if (oldColor) {
+      const cnt = (this.colorsOnBoard.get(oldColor) ?? 0) - 1;
+      if (cnt <= 0) this.colorsOnBoard.delete(oldColor);
+      else this.colorsOnBoard.set(oldColor, cnt);
+    }
+    if (newColor) {
+      this.colorsOnBoard.set(newColor, (this.colorsOnBoard.get(newColor) ?? 0) + 1);
+    }
+  }
+
   // Adds a ball to the cell. Returns BurstResult if the cell burst, null otherwise.
   addBallToCell(row: number, col: number): BurstResult | null {
     const cell = this.cells[row][col];
@@ -79,6 +93,7 @@ export class GameEngineService {
       return this.burstCell(row, col);
     }
 
+    this.trackColorChange(cell.color, this.currentColor);
     cell.color = this.currentColor;
     const ball: Ball = createBall(row, col, this.grid, this.cells);
     if (ball.isVibrating) this.vibrateAllBallsInCell(row, col);
@@ -89,6 +104,7 @@ export class GameEngineService {
 
   // Clears the cell and returns the valid neighbors for burst propagation.
   burstCell(row: number, col: number): BurstResult {
+    this.trackColorChange(this.cells[row][col].color, '');
     this.cells[row][col].color = '';
     this.cells[row][col].balls = [];
     const fr = [1, -1, 0, 0];
