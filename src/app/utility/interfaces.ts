@@ -41,3 +41,22 @@ export interface TransitionBall {
   endC: number,
   radius: number
 }
+
+export interface Player {
+  color: string;
+  name: string;
+  cellCnt: number;
+}
+
+// Returned by GameEngineService.addBallToCell when a burst occurs.
+// The component uses this to spawn TransitionBalls for animation.
+export interface BurstResult {
+  neighbors: Array<{ r: number; c: number; dir: Direction }>;
+}
+
+// Represents a player's move — the unit that will travel over WebSocket.
+export interface PlayerMove {
+  playerInd: number;
+  row: number;
+  col: number;
+}

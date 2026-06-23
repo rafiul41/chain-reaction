@@ -20,27 +20,29 @@ Run a single spec file by passing `--include` to karma or targeting `fit`/`fdesc
 
 ## Architecture
 
-Single Angular 12 app (`src/app/`) with three routes and no services — all game state lives in the component.
+Single Angular 12 app (`src/app/`) with three routes.
 
 **Routing** (`app-routing.module.ts`):
 - `/home` → `HomeComponent` — game picker; "Play Online" is disabled (coming soon)
 - `/chain-reaction` → `ChainReactionComponent` — the game itself
 - `/game-rules` → `GameRulesComponent` — static rules page
 
-**Game engine** (`components/chain-reaction/chain-reaction.component.ts`):
+**Service layer** (`src/app/services/`):
+- `GameEngineService` (`game-engine.service.ts`, `providedIn: 'root'`) — owns all logical game state and game logic. Call `initGame()` in `ngOnInit` to reset between sessions.
 
-The game renders entirely on an HTML `<canvas>` via `requestAnimationFrame`. Key state fields:
+**Game engine split**:
+- `GameEngineService` owns: `cells`, `grid`, `players`, `playerInd`, `playerCnt`, `turnCnt`, `hasAllPlayersClicked`, `isGameOver`, `currentColor`. Key methods: `initGame`, `addBallToCell` (returns `BurstResult | null`), `burstCell`, `goToNextPlayer`, `isValidMove`.
+- `ChainReactionComponent` owns: canvas rendering, `transitionBalls` animation, and user input routing.
+
+The game renders entirely on an HTML `<canvas>` via `requestAnimationFrame`. Key component state:
 
 | Field | Purpose |
 |---|---|
-| `cells: Cell[][]` | 2-D grid of cells; each cell holds its color, balls, and `maxBallCnt` |
 | `transitionBalls: TransitionBall[]` | Balls currently flying between cells during a chain burst |
 | `isTransitioning` | Blocks clicks while any ball is in flight |
-| `currentColor` | The player color that triggered the current burst cascade; used to repaint captured cells |
-| `hasAllPlayersClicked` | Game-over can only fire after every player has had at least one turn |
-| `playerInd / playerCnt / turnCnt` | Turn management; default 2 players |
+| `hasWentToNextPlayer` | Tracks whether `goToNextPlayer` has been called for the current turn |
 
-**Burst / chain-reaction mechanic**: when `addBallOnCell` fills a cell to `maxBallCnt`, `burstCell` empties it and pushes one `TransitionBall` toward each valid neighbour. `updateBalls` advances those balls each frame; when a ball reaches its destination it calls `addBallOnCell` again, which can chain. Game-over is detected in `updateBalls` when only one color remains in `cells` and `transitionBalls` is empty.
+**Burst / chain-reaction mechanic**: when `addBallToCell` fills a cell to `maxBallCnt`, `burstCell` empties it and returns the valid neighbours as a `BurstResult`. The component creates `TransitionBall`s for each neighbour. `updateBalls` advances those balls each frame; when a ball arrives it calls `addBallToCell` again, which can chain. Game-over is detected in `updateBalls` when only one color remains in `cells` and `transitionBalls` is empty.
 
 **Cell capacity rules** (from `functions.ts`):
 - Corner cells: max 1 ball
@@ -49,7 +51,7 @@ The game renders entirely on an HTML `<canvas>` via `requestAnimationFrame`. Key
 
 **Utility layer** (`src/app/utility/`):
 - `enums.ts` — `COLOR`, `GRID` (row/col counts, default cell width, padding), `SPEED` (vibration and transition speeds)
-- `interfaces.ts` — `Grid`, `Cell`, `Ball`, `TransitionBall`, `Point`, `Direction`
+- `interfaces.ts` — `Grid`, `Cell`, `Ball`, `TransitionBall`, `Point`, `Direction`, `Player`, `BurstResult`, `PlayerMove`
 - `functions.ts` — pure canvas/geometry helpers (`drawGrid`, `drawBall`, `createBall`, `createTransitionBall`, coordinate conversion, cell-type predicates)
 
 **Responsive sizing**: `updateCellWidth()` shrinks cells to fit the viewport when `window.innerWidth < 511px` and is called on `resize`.

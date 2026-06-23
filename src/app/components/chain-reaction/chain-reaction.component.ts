@@ -7,25 +7,17 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
+import { TransitionBall } from '../../utility/interfaces';
+import { COLOR, SPEED } from '../../utility/enums';
 import {
-  Ball,
-  Cell,
-  Direction,
-  Grid,
-  TransitionBall,
-} from '../../utility/interfaces';
-import { COLOR, GRID, SPEED } from '../../utility/enums';
-import {
-  createBall,
   createTransitionBall,
   drawBall,
   drawGrid,
   getRowColFromCoordinate,
-  isCornerCell,
-  isEdgeCell,
   isRowColValid,
 } from '../../utility/functions';
 import { Router } from '@angular/router';
+import { GameEngineService } from '../../services/game-engine.service';
 
 @Component({
   standalone: false,
@@ -40,74 +32,36 @@ export class ChainReactionComponent
   canvas: ElementRef<HTMLCanvasElement>;
 
   ctx: CanvasRenderingContext2D | null;
-
   animationId: any;
 
-  rowCnt = 5;
-  colCnt = 5;
-  grid: Grid;
-  cells: Cell[][];
-
   isTransitioning = false;
-
-  transitionBalls: TransitionBall[];
-
-  isGameOver = false;
-
-  hasAllPlayersClicked = false;
+  transitionBalls: TransitionBall[] = [];
   hasWentToNextPlayer = true;
 
-  playerCnt = 2;
-  playerInd = 0;
-  turnCnt = 0;
-
   isMoveTextToVibrate = false;
-
-  players = [
-    {
-      color: COLOR.RED,
-      name: 'unknown',
-      cellCnt: 0,
-    },
-    {
-      color: COLOR.GREEN,
-      name: 'unknown',
-      cellCnt: 0,
-    },
-    {
-      color: COLOR.BLUE,
-      name: 'unknown',
-      cellCnt: 0,
-    },
-    {
-      color: COLOR.WHITE,
-      name: 'unknown',
-      cellCnt: 0,
-    },
-    {
-      color: COLOR.PINK,
-      name: 'unknown',
-      cellCnt: 0,
-    },
-    {
-      color: COLOR.BROWN,
-      name: 'unknown',
-      cellCnt: 0,
-    },
-    {
-      color: COLOR.CYAN,
-      name: 'unknown',
-      cellCnt: 0,
-    },
-  ];
-
-  currentColor: string;
 
   confirmationModal: any;
   isModalShowing = false;
   modalAction: 'restart' | 'go back';
 
-  constructor(private router: Router) {}
+  private readonly allPlayers = [
+    { color: COLOR.RED,   name: 'unknown', cellCnt: 0 },
+    { color: COLOR.GREEN, name: 'unknown', cellCnt: 0 },
+    { color: COLOR.BLUE,  name: 'unknown', cellCnt: 0 },
+    { color: COLOR.WHITE, name: 'unknown', cellCnt: 0 },
+    { color: COLOR.PINK,  name: 'unknown', cellCnt: 0 },
+    { color: COLOR.BROWN, name: 'unknown', cellCnt: 0 },
+    { color: COLOR.CYAN,  name: 'unknown', cellCnt: 0 },
+  ];
+
+  // Template-facing getters — delegate to engine so templates need no change.
+  get players() { return this.engine.players; }
+  get playerInd() { return this.engine.playerInd; }
+  get turnCnt() { return this.engine.turnCnt; }
+  get isGameOver() { return this.engine.isGameOver; }
+  get currentColor() { return this.engine.currentColor; }
+
+  constructor(private router: Router, public engine: GameEngineService) {}
 
   @HostListener('window:resize')
   onResize() {
@@ -118,24 +72,15 @@ export class ChainReactionComponent
     this.confirmationModal = document.getElementById('confirmation-modal');
   }
 
-  updateCellWidth() {
-    if (window.innerWidth < 511) {
-      let gridWidth = window.innerWidth;
-      this.grid.cellWidth = gridWidth / this.grid.colCnt;
-    }
-    let canvasWidth =
-      this.grid.cellWidth * this.grid.colCnt + 2 * this.grid.padding;
-    let canvasHeight =
-      this.grid.cellWidth * this.grid.rowCnt + 2 * this.grid.padding;
-    this.canvas.nativeElement.width = canvasWidth;
-    this.canvas.nativeElement.height = canvasHeight;
-    this.grid.width = canvasWidth;
-    this.grid.height = canvasHeight;
-  }
-
   ngOnInit(): void {
-    this.players = this.players.slice(0, this.playerCnt);
-    this.initializeGridAndCanvas();
+    this.engine.initGame(
+      this.engine.rowCnt,
+      this.engine.colCnt,
+      this.allPlayers.slice(0, this.engine.playerCnt)
+    );
+    this.updateCellWidth();
+    this.ctx = this.canvas.nativeElement.getContext('2d');
+    this.transitionBalls = [];
     this.animate();
   }
 
@@ -143,220 +88,142 @@ export class ChainReactionComponent
     cancelAnimationFrame(this.animationId);
   }
 
+  updateCellWidth() {
+    const grid = this.engine.grid;
+    if (window.innerWidth < 511) {
+      grid.cellWidth = window.innerWidth / grid.colCnt;
+    }
+    const canvasWidth = grid.cellWidth * grid.colCnt + 2 * grid.padding;
+    const canvasHeight = grid.cellWidth * grid.rowCnt + 2 * grid.padding;
+    this.canvas.nativeElement.width = canvasWidth;
+    this.canvas.nativeElement.height = canvasHeight;
+    grid.width = canvasWidth;
+    grid.height = canvasHeight;
+  }
+
   animate() {
-    if (this.isGameOver) return;
-    this.ctx?.clearRect(0, 0, this.grid.width, this.grid.height);
-    drawGrid(this.grid, this.ctx);
+    if (this.engine.isGameOver) return;
+    const { grid } = this.engine;
+    this.ctx?.clearRect(0, 0, grid.width, grid.height);
+    drawGrid(grid, this.ctx);
     this.updateBalls();
     this.animationId = requestAnimationFrame(() => this.animate());
   }
 
   updateBalls() {
-    let set = new Set();
-    for (let i = 0; i < this.cells.length; i++) {
-      for (let j = 0; j < this.cells[i].length; j++) {
-        if (this.cells[i][j].color !== '') set.add(this.cells[i][j].color);
-        for (let k = 0; k < this.cells[i][j].balls.length; k++) {
-          let ball = this.cells[i][j].balls[k];
+    const { cells } = this.engine;
+
+    for (let i = 0; i < cells.length; i++) {
+      for (let j = 0; j < cells[i].length; j++) {
+        for (let k = 0; k < cells[i][j].balls.length; k++) {
+          const ball = cells[i][j].balls[k];
           if (ball.isVibrating) {
             ball.vibrationSpeed++;
             ball.vibrationSpeed %= SPEED.VIBRATION_MOD;
             if (ball.vibrationSpeed === 0) {
-              ball.currX =
-                ball.startX + (Math.random() * 10 - SPEED.VIBRATION_MOD);
-              ball.currY =
-                ball.startY + (Math.random() * 10 - SPEED.VIBRATION_MOD);
+              ball.currX = ball.startX + (Math.random() * 10 - SPEED.VIBRATION_MOD);
+              ball.currY = ball.startY + (Math.random() * 10 - SPEED.VIBRATION_MOD);
             }
           }
-          drawBall(ball, this.cells[i][j].color, this.ctx);
+          drawBall(ball, cells[i][j].color, this.ctx);
         }
       }
     }
 
-    if (
-      set.size === 1 &&
-      this.hasAllPlayersClicked &&
-      this.transitionBalls.length === 0
-    ) {
-      this.isGameOver = true;
-    }
-
     if (this.transitionBalls.length === 0) {
       this.isTransitioning = false;
-      if (!this.hasWentToNextPlayer) {
-        this.goToNextPlayer();
+      if (this.engine.hasAllPlayersClicked) {
+        const colorsOnBoard = new Set<string>();
+        for (let i = 0; i < cells.length; i++) {
+          for (let j = 0; j < cells[i].length; j++) {
+            if (cells[i][j].color !== '') colorsOnBoard.add(cells[i][j].color);
+          }
+        }
+        if (colorsOnBoard.size === 1) {
+          this.engine.isGameOver = true;
+        }
+      }
+      if (!this.hasWentToNextPlayer && !this.engine.isGameOver) {
+        this.engine.goToNextPlayer();
         this.hasWentToNextPlayer = true;
       }
       return;
     }
 
     for (let i = 0; i < this.transitionBalls.length; i++) {
-      let ball = this.transitionBalls[i];
-      let toRemove = false;
+      const ball = this.transitionBalls[i];
+      let arrived = false;
       if (ball.dir === 'U') {
         ball.currY -= SPEED.TRANSITION_BALL_SPEED;
-        if (ball.currY < ball.endY) toRemove = true;
+        if (ball.currY < ball.endY) arrived = true;
       } else if (ball.dir === 'D') {
         ball.currY += SPEED.TRANSITION_BALL_SPEED;
-        if (ball.currY > ball.endY) toRemove = true;
+        if (ball.currY > ball.endY) arrived = true;
       } else if (ball.dir === 'R') {
         ball.currX += SPEED.TRANSITION_BALL_SPEED;
-        if (ball.currX > ball.endX) toRemove = true;
+        if (ball.currX > ball.endX) arrived = true;
       } else {
         ball.currX -= SPEED.TRANSITION_BALL_SPEED;
-        if (ball.currX < ball.endX) toRemove = true;
+        if (ball.currX < ball.endX) arrived = true;
       }
-      if (toRemove) {
-        this.addBallOnCell(ball.endR, ball.endC);
-        this.cells[ball.endR][ball.endC].color = this.currentColor;
+
+      if (arrived) {
         this.transitionBalls = [
           ...this.transitionBalls.slice(0, i),
           ...this.transitionBalls.slice(i + 1),
         ];
+        this.engine.cells[ball.endR][ball.endC].color = this.engine.currentColor;
+        this.applyMoveWithAnimation(ball.endR, ball.endC);
+        i--;
       } else {
-        drawBall(ball, this.currentColor, this.ctx);
+        drawBall(ball, this.engine.currentColor, this.ctx);
       }
     }
   }
 
-  getMaxBallCntInCell(row: number, col: number) {
-    return isCornerCell(row, col, this.grid)
-      ? 1
-      : isEdgeCell(row, col, this.grid)
-      ? 2
-      : 3;
-  }
-
-  initializeGridAndCanvas() {
-    this.grid = {
-      rowCnt: this.rowCnt,
-      colCnt: this.colCnt,
-      cellWidth: GRID.DEFAULT_CELL_WIDTH,
-      width: 0,
-      height: 0,
-      padding: GRID.PADDING,
-    };
-    this.updateCellWidth();
-    this.ctx = this.canvas.nativeElement.getContext('2d');
-
-    let initialBallConfig: any = [];
-    for (let i = 0; i < this.grid.rowCnt; i++) {
-      initialBallConfig.push([]);
-      for (let j = 0; j < this.grid.colCnt; j++) {
-        initialBallConfig[i].push({
-          maxBallCnt: this.getMaxBallCntInCell(i, j),
-          color: '',
-          balls: [],
-        });
-      }
-    }
-    this.cells = initialBallConfig;
-    this.transitionBalls = [];
-  }
-
-  vibrateAllBallsInCell(row: number, col: number) {
-    for (let i = 0; i < this.cells[row][col].balls.length; i++) {
-      this.cells[row][col].balls[i].isVibrating = true;
-    }
-  }
-
-  updateCellBallPositions(row: number, col: number) {
-    let cell = this.cells[row][col];
-    let denominator = 6;
-    if (cell.balls.length === 2) {
-      cell.balls[0].startX += this.grid.cellWidth / denominator;
-      cell.balls[1].startX -= this.grid.cellWidth / denominator;
-
-      cell.balls[0].currX += this.grid.cellWidth / denominator;
-      cell.balls[1].currX -= this.grid.cellWidth / denominator;
-    } else if (cell.balls.length === 3) {
-      cell.balls[0].startX += this.grid.cellWidth / (denominator * 10);
-      cell.balls[0].startY -= this.grid.cellWidth / denominator;
-      cell.balls[1].startX -= this.grid.cellWidth / (denominator * 10);
-      cell.balls[1].startY -= this.grid.cellWidth / denominator;
-      cell.balls[2].startY += this.grid.cellWidth / denominator;
-
-      cell.balls[0].currX += this.grid.cellWidth / (denominator * 10);
-      cell.balls[0].currY -= this.grid.cellWidth / denominator;
-      cell.balls[1].currX -= this.grid.cellWidth / (denominator * 10);
-      cell.balls[1].currY -= this.grid.cellWidth / denominator;
-      cell.balls[2].currY += this.grid.cellWidth / denominator;
-    }
-  }
-
-  burstCell(row: number, col: number) {
-    this.isTransitioning = true;
-    this.cells[row][col].color = '';
-    this.cells[row][col].balls = [];
-    let fr = [1, -1, 0, 0];
-    let fc = [0, 0, 1, -1];
-    let dir: Direction[] = ['D', 'U', 'R', 'L'];
-    for (let i = 0; i < 4; i++) {
-      let vr = row + fr[i];
-      let vc = col + fc[i];
-      if (
-        vr >= 0 &&
-        vc >= 0 &&
-        vr < this.grid.rowCnt &&
-        vc < this.grid.colCnt
-      ) {
+  // Delegates move logic to engine and spawns TransitionBalls for any burst.
+  private applyMoveWithAnimation(row: number, col: number): void {
+    const result = this.engine.addBallToCell(row, col);
+    if (result) {
+      this.isTransitioning = true;
+      for (const { r, c, dir } of result.neighbors) {
         this.transitionBalls.push(
-          createTransitionBall(row, col, vr, vc, dir[i], this.grid)
+          createTransitionBall(row, col, r, c, dir, this.engine.grid)
         );
       }
-    }
-  }
-
-  addBallOnCell(row: number, col: number) {
-    if (this.cells[row][col].balls.length === this.cells[row][col].maxBallCnt) {
-      this.burstCell(row, col);
-      return;
-    }
-
-    this.cells[row][col].color = this.currentColor;
-
-    const ball: Ball = createBall(row, col, this.grid, this.cells);
-    if (ball.isVibrating) this.vibrateAllBallsInCell(row, col);
-    this.cells[row][col].balls.push(ball);
-    if (this.cells[row][col].balls.length > 0) {
-      this.updateCellBallPositions(row, col);
-    }
-
-    if (!this.hasWentToNextPlayer && !this.isTransitioning) {
-      this.goToNextPlayer();
-      this.hasWentToNextPlayer = true;
     }
   }
 
   onCellClick(e: any) {
     if (this.isTransitioning) return;
     const gridCoordinate = {
-      x: e.offsetX - this.grid.padding,
-      y: e.offsetY - this.grid.padding,
+      x: e.offsetX - this.engine.grid.padding,
+      y: e.offsetY - this.engine.grid.padding,
     };
-    let rowCol = getRowColFromCoordinate(
+    const { row, col } = getRowColFromCoordinate(
       gridCoordinate.x,
       gridCoordinate.y,
-      this.grid
+      this.engine.grid
     );
-    let row = rowCol.row;
-    let col = rowCol.col;
-    if (!isRowColValid(row, col, this.grid)) {
+    if (!isRowColValid(row, col, this.engine.grid)) {
       console.log('PLEASE CLICK ON A CELL!');
       return;
     }
-    if (
-      this.cells[row][col].balls.length > 0 &&
-      this.cells[row][col].color !== this.players[this.playerInd].color
-    ) {
+    if (!this.engine.isValidMove(row, col)) {
       this.vibrateMoveText();
       return;
     }
-    this.turnCnt++;
 
+    this.engine.turnCnt++;
     this.hasWentToNextPlayer = false;
-    this.currentColor = this.players[this.playerInd].color;
-    this.addBallOnCell(row, col);
+    this.engine.currentColor = this.engine.players[this.engine.playerInd].color;
+    this.applyMoveWithAnimation(row, col);
+
+    // Non-burst: advance turn immediately (mirrors original synchronous behaviour).
+    if (!this.hasWentToNextPlayer && !this.isTransitioning) {
+      this.engine.goToNextPlayer();
+      this.hasWentToNextPlayer = true;
+    }
   }
 
   vibrateMoveText() {
@@ -366,16 +233,8 @@ export class ChainReactionComponent
     }, 500);
   }
 
-  goToNextPlayer() {
-    this.playerInd++;
-    if (this.playerInd >= this.playerCnt) {
-      this.hasAllPlayersClicked = true;
-    }
-    this.playerInd %= this.playerCnt;
-  }
-
   restart() {
-    if (!this.isGameOver && this.turnCnt > 0 && !this.isModalShowing) {
+    if (!this.engine.isGameOver && this.engine.turnCnt > 0 && !this.isModalShowing) {
       this.modalAction = 'restart';
       this.showModal();
     } else {
@@ -384,7 +243,7 @@ export class ChainReactionComponent
   }
 
   goHome() {
-    if (!this.isGameOver && this.turnCnt > 0 && !this.isModalShowing) {
+    if (!this.engine.isGameOver && this.engine.turnCnt > 0 && !this.isModalShowing) {
       this.modalAction = 'go back';
       this.showModal();
     } else {
