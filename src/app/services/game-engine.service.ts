@@ -1,10 +1,20 @@
 import { Injectable } from '@angular/core';
 import { Ball, BurstResult, Cell, Direction, Grid, Player } from '../utility/interfaces';
-import { GRID } from '../utility/enums';
+import { COLOR, GRID } from '../utility/enums';
 import { createBall, getBallCoordinates, isCornerCell, isEdgeCell, isRowColValid } from '../utility/functions';
 
 @Injectable({ providedIn: 'root' })
 export class GameEngineService {
+  readonly allPlayers: Player[] = [
+    { color: COLOR.RED,   name: 'unknown', cellCnt: 0 },
+    { color: COLOR.GREEN, name: 'unknown', cellCnt: 0 },
+    { color: COLOR.BLUE,  name: 'unknown', cellCnt: 0 },
+    { color: COLOR.WHITE, name: 'unknown', cellCnt: 0 },
+    { color: COLOR.PINK,  name: 'unknown', cellCnt: 0 },
+    { color: COLOR.BROWN, name: 'unknown', cellCnt: 0 },
+    { color: COLOR.CYAN,  name: 'unknown', cellCnt: 0 },
+  ];
+
   cells: Cell[][] = [];
   grid!: Grid;
   players: Player[] = [];

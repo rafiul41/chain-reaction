@@ -8,7 +8,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { TransitionBall } from '../../utility/interfaces';
-import { COLOR, SPEED } from '../../utility/enums';
+import { SPEED } from '../../utility/enums';
 import {
   createTransitionBall,
   drawBall,
@@ -44,16 +44,6 @@ export class ChainReactionComponent
   isModalShowing = false;
   modalAction: 'restart' | 'go back';
 
-  private readonly allPlayers = [
-    { color: COLOR.RED,   name: 'unknown', cellCnt: 0 },
-    { color: COLOR.GREEN, name: 'unknown', cellCnt: 0 },
-    { color: COLOR.BLUE,  name: 'unknown', cellCnt: 0 },
-    { color: COLOR.WHITE, name: 'unknown', cellCnt: 0 },
-    { color: COLOR.PINK,  name: 'unknown', cellCnt: 0 },
-    { color: COLOR.BROWN, name: 'unknown', cellCnt: 0 },
-    { color: COLOR.CYAN,  name: 'unknown', cellCnt: 0 },
-  ];
-
   // Template-facing getters — delegate to engine so templates need no change.
   get players() { return this.engine.players; }
   get playerInd() { return this.engine.playerInd; }
@@ -76,7 +66,7 @@ export class ChainReactionComponent
     this.engine.initGame(
       this.engine.rowCnt,
       this.engine.colCnt,
-      this.allPlayers.slice(0, this.engine.playerCnt)
+      this.engine.allPlayers.slice(0, this.engine.playerCnt)
     );
     this.updateCellWidth();
     this.ctx = this.canvas.nativeElement.getContext('2d');
