@@ -129,14 +129,14 @@ export class GameEngineService {
       cell.balls[0].currX += this.grid.cellWidth / d;
       cell.balls[1].currX -= this.grid.cellWidth / d;
     } else if (cell.balls.length === 3) {
-      cell.balls[0].startX += this.grid.cellWidth / (d * 10);
+      cell.balls[0].startX += this.grid.cellWidth / d;
       cell.balls[0].startY -= this.grid.cellWidth / d;
-      cell.balls[1].startX -= this.grid.cellWidth / (d * 10);
+      cell.balls[1].startX -= this.grid.cellWidth / d;
       cell.balls[1].startY -= this.grid.cellWidth / d;
       cell.balls[2].startY += this.grid.cellWidth / d;
-      cell.balls[0].currX += this.grid.cellWidth / (d * 10);
+      cell.balls[0].currX += this.grid.cellWidth / d;
       cell.balls[0].currY -= this.grid.cellWidth / d;
-      cell.balls[1].currX -= this.grid.cellWidth / (d * 10);
+      cell.balls[1].currX -= this.grid.cellWidth / d;
       cell.balls[1].currY -= this.grid.cellWidth / d;
       cell.balls[2].currY += this.grid.cellWidth / d;
     }
