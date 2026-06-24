@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  serverUrl: 'https://your-server-url-here.com',
+  serverUrl: 'https://chain-reaction-server-wisj.onrender.com',
 };

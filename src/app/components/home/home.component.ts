@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
 
 @Component({
   standalone: true,
@@ -8,9 +9,23 @@ import { Router } from '@angular/router';
   styleUrls: ['./home.component.scss'],
 })
 export class HomeComponent {
+  readonly isWakingServer = signal(false);
+
   constructor(private router: Router) {}
 
   goToLocal() { this.router.navigate(['/local']); }
-  goToOnline() { this.router.navigate(['/online']); }
+
+  async goToOnline() {
+    this.isWakingServer.set(true);
+    try {
+      await fetch(`${environment.serverUrl}/health`, { signal: AbortSignal.timeout(60000) });
+    } catch {
+      // Server didn't wake in time; navigate anyway and let the lobby handle the connection
+    } finally {
+      this.isWakingServer.set(false);
+      this.router.navigate(['/online']);
+    }
+  }
+
   goToRules() { this.router.navigate(['/game-rules']); }
 }

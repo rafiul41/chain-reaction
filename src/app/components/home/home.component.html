@@ -19,7 +19,7 @@
       </span>
     </button>
 
-    <button class="action-btn secondary" (click)="goToOnline()">
+    <button class="action-btn secondary" (click)="goToOnline()" [disabled]="isWakingServer()">
       <span class="btn-icon">🌐</span>
       <span class="btn-content">
         <span class="btn-label">Play Online</span>
@@ -27,4 +27,14 @@
       </span>
     </button>
   </div>
+
+  @if (isWakingServer()) {
+    <div class="waking-overlay">
+      <div class="waking-card">
+        <div class="spinner"></div>
+        <p class="waking-title">Waking up the server</p>
+        <p class="waking-sub">This can take up to 50 seconds on first launch</p>
+      </div>
+    </div>
+  }
 </div>

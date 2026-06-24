@@ -153,3 +153,55 @@
   0%   { background-position: 0% center; }
   100% { background-position: 200% center; }
 }
+
+.waking-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 6, 20, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.waking-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 2.5rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  box-shadow: 0 0 40px rgba(124, 58, 237, 0.15);
+  max-width: 300px;
+  text-align: center;
+}
+
+.spinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid rgba(167, 139, 250, 0.2);
+  border-top-color: #a78bfa;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.waking-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.waking-sub {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
