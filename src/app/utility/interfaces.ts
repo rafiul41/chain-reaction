@@ -60,3 +60,27 @@ export interface PlayerMove {
   row: number;
   col: number;
 }
+
+export interface RoomPlayer {
+  socketId: string;
+  playerInd: number;
+  color: string;
+  name: string;
+}
+
+export interface RoomState {
+  roomId: string;
+  code: string;
+  hostSocketId: string;
+  players: RoomPlayer[];
+  rowCnt: number;
+  colCnt: number;
+  maxPlayers: number;
+  started: boolean;
+}
+
+export interface OnlineMoveBroadcast {
+  row: number;
+  col: number;
+  playerInd: number;
+}

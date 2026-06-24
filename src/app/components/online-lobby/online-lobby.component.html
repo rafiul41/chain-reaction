@@ -1,0 +1,134 @@
+<div class="lobby-page">
+  <div class="lobby-card">
+    <button class="back-btn" (click)="goBack()">← Back</button>
+
+    <!-- Mode select -->
+    <ng-container *ngIf="view === 'select'">
+      <h1 class="lobby-title">Play Online</h1>
+      <p class="lobby-sub">Create a room or join a friend</p>
+      <div class="mode-btns">
+        <button class="mode-btn fancy-button-1" (click)="selectCreate()">
+          <span class="mode-icon">+</span>
+          <span>Create Room</span>
+        </button>
+        <button class="mode-btn fancy-button-1" (click)="selectJoin()">
+          <span class="mode-icon">→</span>
+          <span>Join Room</span>
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- Create room form -->
+    <ng-container *ngIf="view === 'create'">
+      <h1 class="lobby-title">Create Room</h1>
+      <div class="form-body">
+        <div class="field-group">
+          <label class="field-label">Your Name</label>
+          <input
+            type="text"
+            [(ngModel)]="createName"
+            placeholder="Enter your name"
+            maxlength="16"
+            class="text-input"
+          />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            Players <span class="field-value">{{ createPlayerCnt }}</span>
+          </label>
+          <input type="range" min="2" max="7" [(ngModel)]="createPlayerCnt" class="slider" />
+          <div class="range-marks">
+            <span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">
+              Rows <span class="field-value">{{ createRowCnt }}</span>
+            </label>
+            <input type="range" min="5" max="8" [(ngModel)]="createRowCnt" class="slider" />
+            <div class="range-marks"><span>5</span><span>6</span><span>7</span><span>8</span></div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">
+              Cols <span class="field-value">{{ createColCnt }}</span>
+            </label>
+            <input type="range" min="5" max="8" [(ngModel)]="createColCnt" class="slider" />
+            <div class="range-marks"><span>5</span><span>6</span><span>7</span><span>8</span></div>
+          </div>
+        </div>
+
+        <div *ngIf="errorMsg" class="error-msg">{{ errorMsg }}</div>
+        <button class="submit-btn fancy-button-1" (click)="createRoom()">Create Room</button>
+      </div>
+    </ng-container>
+
+    <!-- Join room form -->
+    <ng-container *ngIf="view === 'join'">
+      <h1 class="lobby-title">Join Room</h1>
+      <div class="form-body">
+        <div class="field-group">
+          <label class="field-label">Your Name</label>
+          <input
+            type="text"
+            [(ngModel)]="joinName"
+            placeholder="Enter your name"
+            maxlength="16"
+            class="text-input"
+          />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Room Code</label>
+          <input
+            type="text"
+            [(ngModel)]="joinCode"
+            placeholder="e.g. A3K9"
+            maxlength="4"
+            class="text-input code-input"
+          />
+        </div>
+        <div *ngIf="errorMsg" class="error-msg">{{ errorMsg }}</div>
+        <button class="submit-btn fancy-button-1" (click)="joinRoom()">Join Room</button>
+      </div>
+    </ng-container>
+
+    <!-- Waiting room -->
+    <ng-container *ngIf="view === 'waiting' && currentRoom">
+      <h1 class="lobby-title">Waiting Room</h1>
+      <div class="room-code-block">
+        <span class="room-code-label">Room Code</span>
+        <span class="room-code">{{ currentRoom.code }}</span>
+        <span class="room-code-hint">Share this with friends</span>
+      </div>
+
+      <div class="player-list">
+        <div *ngFor="let p of currentRoom.players" class="player-row">
+          <span class="player-dot" [style.background]="p.color"></span>
+          <span class="player-name">{{ p.name }}</span>
+          <span *ngIf="p.socketId === currentRoom.hostSocketId" class="host-badge">Host</span>
+        </div>
+        <div
+          *ngFor="let _ of [].constructor(currentRoom.maxPlayers - currentRoom.players.length)"
+          class="player-row empty"
+        >
+          <span class="player-dot empty-dot"></span>
+          <span class="player-name">Waiting...</span>
+        </div>
+      </div>
+
+      <div *ngIf="errorMsg" class="error-msg">{{ errorMsg }}</div>
+
+      <button
+        *ngIf="isHost"
+        class="start-btn fancy-button-1"
+        [disabled]="!canStart"
+        (click)="startGame()"
+      >
+        Start Game
+      </button>
+      <p *ngIf="!isHost" class="waiting-text">Waiting for host to start the game…</p>
+    </ng-container>
+  </div>
+</div>

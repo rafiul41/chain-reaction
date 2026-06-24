@@ -11,26 +11,20 @@
   </div>
 
   <div class="actions">
-    <button class="action-btn primary" (click)="goToGame()">
+    <button class="action-btn primary" (click)="goToLocal()">
       <span class="btn-icon">⚔</span>
       <span class="btn-content">
-        <span class="btn-label">Local 1v1</span>
-        <span class="btn-sub">Play on this device</span>
+        <span class="btn-label">Pass &amp; Play</span>
+        <span class="btn-sub">Local multiplayer on this device</span>
       </span>
     </button>
 
-    <button
-      class="action-btn secondary"
-      disabled
-      (mouseenter)="startVibrate()"
-      (mouseleave)="endVibrate()"
-    >
+    <button class="action-btn secondary" (click)="goToOnline()">
       <span class="btn-icon">🌐</span>
       <span class="btn-content">
         <span class="btn-label">Play Online</span>
-        <span class="btn-sub" [ngClass]="{ 'text-vibrate': isComingSoonVibrate }">Coming Soon</span>
+        <span class="btn-sub">Play with friends online</span>
       </span>
-      <span class="badge">Soon</span>
     </button>
   </div>
 </div>

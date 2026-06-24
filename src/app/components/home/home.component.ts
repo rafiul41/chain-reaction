@@ -9,28 +9,19 @@ import { Router } from '@angular/router';
 })
 export class HomeComponent implements OnInit {
 
-  isComingSoonVibrate = false;
+  constructor(private router: Router) {}
 
-  constructor(
-    private router: Router
-  ) { }
+  ngOnInit(): void {}
 
-  ngOnInit(): void {
+  goToLocal() {
+    this.router.navigate(['/local']);
   }
 
-  goToGame() {
-    this.router.navigate(['/chain-reaction']);
+  goToOnline() {
+    this.router.navigate(['/online']);
   }
 
   goToRules() {
     this.router.navigate(['/game-rules']);
-  }
-
-  startVibrate() {
-    this.isComingSoonVibrate = true;
-  }
-
-  endVibrate() {
-    this.isComingSoonVibrate = false;
   }
 }

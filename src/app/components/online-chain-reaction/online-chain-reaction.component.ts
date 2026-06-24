@@ -8,6 +8,8 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
+import { Router } from '@angular/router';
+import { Subscription, timer } from 'rxjs';
 import { TransitionBall } from '../../utility/interfaces';
 import { SPEED } from '../../utility/enums';
 import {
@@ -17,23 +19,20 @@ import {
   getRowColFromCoordinate,
   isRowColValid,
 } from '../../utility/functions';
-import { Router } from '@angular/router';
-import { Subscription, timer } from 'rxjs';
 import { GameEngineService } from '../../services/game-engine.service';
+import { OnlineGameService } from '../../services/online-game.service';
 
 @Component({
   standalone: false,
-  selector: 'app-chain-reaction',
-  templateUrl: './chain-reaction.component.html',
-  styleUrls: ['./chain-reaction.component.scss'],
+  selector: 'app-online-chain-reaction',
+  templateUrl: './online-chain-reaction.component.html',
+  styleUrls: ['./online-chain-reaction.component.scss'],
 })
-export class ChainReactionComponent
-  implements OnInit, OnDestroy, AfterViewInit
-{
+export class OnlineChainReactionComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('canvas', { static: true })
   canvas: ElementRef<HTMLCanvasElement>;
 
-  ctx: CanvasRenderingContext2D | null;
+  ctx: CanvasRenderingContext2D | null = null;
   animationId: any;
 
   isTransitioning = false;
@@ -42,31 +41,26 @@ export class ChainReactionComponent
   private gameOverTimer?: Subscription;
 
   isMoveTextToVibrate = false;
+  disconnectedPlayerInd: number | null = null;
 
   confirmationModal: any;
   isModalShowing = false;
-  modalAction: 'restart' | 'go back';
 
-  // Template-facing getters — delegate to engine so templates need no change.
-  get players() {
-    return this.engine.players;
-  }
-  get playerInd() {
-    return this.engine.playerInd;
-  }
-  get turnCnt() {
-    return this.engine.turnCnt;
-  }
-  get isGameOver() {
-    return this.engine.isGameOver;
-  }
-  get currentColor() {
-    return this.engine.currentColor;
-  }
+  myPlayerInd = -1;
+
+  private subs: Subscription[] = [];
+
+  get players() { return this.engine.players; }
+  get playerInd() { return this.engine.playerInd; }
+  get turnCnt() { return this.engine.turnCnt; }
+  get isGameOver() { return this.engine.isGameOver; }
+  get currentColor() { return this.engine.currentColor; }
+  get isMyTurn() { return this.engine.playerInd === this.myPlayerInd; }
 
   constructor(
     private router: Router,
     public engine: GameEngineService,
+    private online: OnlineGameService,
     private cdr: ChangeDetectorRef,
   ) {}
 
@@ -76,33 +70,55 @@ export class ChainReactionComponent
   }
 
   ngAfterViewInit(): void {
-    this.confirmationModal = document.getElementById('confirmation-modal');
+    this.confirmationModal = document.getElementById('online-confirmation-modal');
   }
 
   ngOnInit(): void {
-    const state = history.state;
-    if (state?.players?.length) {
-      this.engine.initGame(state.rowCnt, state.colCnt, state.players);
-    } else {
-      this.engine.initGame(
-        this.engine.rowCnt,
-        this.engine.colCnt,
-        this.engine.allPlayers.slice(0, this.engine.playerCnt),
-      );
+    const room = this.online.currentRoom;
+    if (!room) {
+      this.router.navigate(['/online']);
+      return;
     }
+
+    this.myPlayerInd = this.online.myPlayerInd;
+    const players = room.players
+      .sort((a, b) => a.playerInd - b.playerInd)
+      .map((p) => ({ color: p.color, name: p.name, cellCnt: 0 }));
+
+    this.engine.initGame(room.rowCnt, room.colCnt, players);
     this.updateCellWidth();
     this.ctx = this.canvas.nativeElement.getContext('2d');
     this.transitionBalls = [];
     this.animate();
+
+    this.subs.push(
+      this.online.moveBroadcast$.subscribe(({ row, col }) => {
+        this.engine.turnCnt++;
+        this.hasWentToNextPlayer = false;
+        this.engine.currentColor = this.engine.players[this.engine.playerInd].color;
+        this.applyMoveWithAnimation(row, col);
+        if (!this.hasWentToNextPlayer && !this.isTransitioning) {
+          this.engine.goToNextPlayer();
+          this.hasWentToNextPlayer = true;
+        }
+      }),
+      this.online.playerDisconnected$.subscribe(({ playerInd }) => {
+        this.disconnectedPlayerInd = playerInd;
+        this.engine.isGameOver = true;
+        this.cdr.detectChanges();
+      }),
+    );
   }
 
   ngOnDestroy(): void {
     cancelAnimationFrame(this.animationId);
     this.gameOverTimer?.unsubscribe();
+    this.subs.forEach((s) => s.unsubscribe());
   }
 
   updateCellWidth() {
     const grid = this.engine.grid;
+    if (!grid) return;
     if (window.innerWidth < 511) {
       grid.cellWidth = window.innerWidth / grid.colCnt;
     }
@@ -134,10 +150,8 @@ export class ChainReactionComponent
             ball.vibrationSpeed++;
             ball.vibrationSpeed %= SPEED.VIBRATION_MOD;
             if (ball.vibrationSpeed === 0) {
-              ball.currX =
-                ball.startX + (Math.random() * 10 - SPEED.VIBRATION_MOD);
-              ball.currY =
-                ball.startY + (Math.random() * 10 - SPEED.VIBRATION_MOD);
+              ball.currX = ball.startX + (Math.random() * 10 - SPEED.VIBRATION_MOD);
+              ball.currY = ball.startY + (Math.random() * 10 - SPEED.VIBRATION_MOD);
             }
           }
           drawBall(ball, cells[i][j].color, this.ctx);
@@ -146,7 +160,9 @@ export class ChainReactionComponent
     }
 
     const { colorsOnBoard, currentColor } = this.engine;
-    const noOpponentCells = colorsOnBoard.size === 0 || (colorsOnBoard.size === 1 && colorsOnBoard.has(currentColor));
+    const noOpponentCells =
+      colorsOnBoard.size === 0 ||
+      (colorsOnBoard.size === 1 && colorsOnBoard.has(currentColor));
     if (this.engine.hasAllPlayersClicked && noOpponentCells && !this.gameOverTimer) {
       this.gameOverTimer = timer(700).subscribe(() => {
         this.engine.isGameOver = true;
@@ -193,21 +209,23 @@ export class ChainReactionComponent
     }
   }
 
-  // Delegates move logic to engine and spawns TransitionBalls for any burst.
   private applyMoveWithAnimation(row: number, col: number): void {
     const result = this.engine.addBallToCell(row, col);
     if (result) {
       this.isTransitioning = true;
       for (const { r, c, dir } of result.neighbors) {
-        this.transitionBalls.push(
-          createTransitionBall(row, col, r, c, dir, this.engine.grid),
-        );
+        this.transitionBalls.push(createTransitionBall(row, col, r, c, dir, this.engine.grid));
       }
     }
   }
 
   onCellClick(e: any) {
-    if (this.isTransitioning) return;
+    if (this.isTransitioning || this.engine.isGameOver) return;
+    if (!this.isMyTurn) {
+      this.vibrateMoveText();
+      return;
+    }
+
     const gridCoordinate = {
       x: e.offsetX - this.engine.grid.padding,
       y: e.offsetY - this.engine.grid.padding,
@@ -217,10 +235,7 @@ export class ChainReactionComponent
       gridCoordinate.y,
       this.engine.grid,
     );
-    if (!isRowColValid(row, col, this.engine.grid)) {
-      console.log('PLEASE CLICK ON A CELL!');
-      return;
-    }
+    if (!isRowColValid(row, col, this.engine.grid)) return;
     if (!this.engine.isValidMove(row, col)) {
       this.vibrateMoveText();
       return;
@@ -231,7 +246,9 @@ export class ChainReactionComponent
     this.engine.currentColor = this.engine.players[this.engine.playerInd].color;
     this.applyMoveWithAnimation(row, col);
 
-    // Non-burst: advance turn immediately (mirrors original synchronous behaviour).
+    // Relay to server (others only)
+    this.online.makeMove(this.online.currentRoom!.roomId, row, col);
+
     if (!this.hasWentToNextPlayer && !this.isTransitioning) {
       this.engine.goToNextPlayer();
       this.hasWentToNextPlayer = true;
@@ -240,52 +257,25 @@ export class ChainReactionComponent
 
   vibrateMoveText() {
     this.isMoveTextToVibrate = true;
-    setTimeout(() => {
-      this.isMoveTextToVibrate = false;
-    }, 500);
-  }
-
-  restart() {
-    if (
-      !this.engine.isGameOver &&
-      this.engine.turnCnt > 0 &&
-      !this.isModalShowing
-    ) {
-      this.modalAction = 'restart';
-      this.showModal();
-    } else {
-      location.reload();
-    }
+    setTimeout(() => { this.isMoveTextToVibrate = false; }, 500);
   }
 
   goHome() {
-    if (
-      !this.engine.isGameOver &&
-      this.engine.turnCnt > 0 &&
-      !this.isModalShowing
-    ) {
-      this.modalAction = 'go back';
-      this.showModal();
+    if (!this.engine.isGameOver && this.engine.turnCnt > 0 && !this.isModalShowing) {
+      this.isModalShowing = true;
+      this.confirmationModal?.showModal();
     } else {
-      this.router.navigate(['/home']);
+      this.leaveGame();
     }
-  }
-
-  showModal() {
-    this.isModalShowing = true;
-    this.confirmationModal.showModal();
   }
 
   closeModal() {
     this.isModalShowing = false;
-    this.confirmationModal.close();
+    this.confirmationModal?.close();
   }
 
-  doModalAction() {
-    if (this.modalAction === 'go back') {
-      this.goHome();
-    } else {
-      this.restart();
-    }
+  leaveGame() {
+    this.online.disconnect();
+    this.router.navigate(['/home']);
   }
 }
