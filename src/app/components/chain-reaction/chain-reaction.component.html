@@ -6,7 +6,7 @@
 
     <div class="turn-indicator" [style.--player-color]="players[playerInd].color">
       <span class="turn-dot"></span>
-      <span class="turn-text" [ngClass]="{ 'text-vibrate': isMoveTextToVibrate }">
+      <span class="turn-text" [class.text-vibrate]="isMoveTextToVibrate()">
         <span [style.color]="players[playerInd].color">{{ players[playerInd].color }}</span>'s turn
       </span>
       <span class="turn-count">Move #{{ turnCnt + 1 }}</span>
@@ -36,7 +36,7 @@
 
 <dialog
   id="confirmation-modal"
-  [ngStyle]="{ display: isModalShowing ? 'flex' : 'none' }"
+  [style.display]="isModalShowing() ? 'flex' : 'none'"
 >
   <div class="modal-backdrop" (click)="closeModal()"></div>
   <div class="modal-card">

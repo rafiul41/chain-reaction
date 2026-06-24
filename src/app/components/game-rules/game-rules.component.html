@@ -5,10 +5,12 @@
       <button class="fancy-button-1" (click)="goBack()">← Go Back</button>
     </div>
     <div class="rules-container">
-      <div *ngFor="let rule of rules; let ind = index" class="rule-item">
-        <span class="rule-number">{{ ind + 1 }}</span>
-        <span class="rule-text">{{ rule }}</span>
-      </div>
+      @for (rule of rules; track $index) {
+        <div class="rule-item">
+          <span class="rule-number">{{ $index + 1 }}</span>
+          <span class="rule-text">{{ rule }}</span>
+        </div>
+      }
     </div>
   </div>
 </div>

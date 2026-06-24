@@ -20,19 +20,50 @@ Run a single spec file by passing `--include` to karma or targeting `fit`/`fdesc
 
 ## Architecture
 
-Single Angular 12 app (`src/app/`) with three routes.
+Single Angular 22 app (`src/app/`) using **standalone components** and **zoneless change detection** (no NgModule, no zone.js).
 
-**Routing** (`app-routing.module.ts`):
-- `/home` → `HomeComponent` — game picker; "Play Online" is disabled (coming soon)
-- `/chain-reaction` → `ChainReactionComponent` — the game itself
+**Bootstrap** (`src/main.ts`):
+- `bootstrapApplication(AppComponent, { providers: [provideZonelessChangeDetection(), provideRouter(routes)] })`
+
+**Routing** (`src/app/app.routes.ts`):
+- `/home` → `HomeComponent` — game picker
+- `/local` → `LocalSettingsComponent` — configure players/board for a local game
+- `/chain-reaction` → `ChainReactionComponent` — local pass-and-play game
+- `/online` → `OnlineLobbyComponent` — create or join an online room
+- `/online/game` → `OnlineChainReactionComponent` — online multiplayer game
 - `/game-rules` → `GameRulesComponent` — static rules page
 
 **Service layer** (`src/app/services/`):
-- `GameEngineService` (`game-engine.service.ts`, `providedIn: 'root'`) — owns all logical game state and game logic. Call `initGame()` in `ngOnInit` to reset between sessions.
+- `GameEngineService` (`game-engine.service.ts`, `providedIn: 'root'`) — owns all game state and logic. Call `initGame()` in `ngOnInit` to reset between sessions.
+- `OnlineGameService` (`online-game.service.ts`, `providedIn: 'root'`) — manages the Socket.IO connection and online room lifecycle.
+
+**Signals architecture**:
+
+All template-reactive state is exposed as Angular signals. Change detection fires automatically whenever a signal is written — no `ChangeDetectorRef` or `NgZone` anywhere in the codebase.
+
+`GameEngineService` signals (template-facing):
+| Signal | Type | Purpose |
+|---|---|---|
+| `players` | `Signal<Player[]>` | Active players in the current game |
+| `playerInd` | `Signal<number>` | Index of the current player |
+| `turnCnt` | `Signal<number>` | Total moves played |
+| `isGameOver` | `Signal<boolean>` | Whether the game has ended |
+| `currentColor` | `Signal<string>` | Color of the player making the current move |
+
+Plain (non-signal) internal state: `cells`, `grid`, `playerCnt`, `hasAllPlayersClicked`, `colorsOnBoard` — used only by canvas rendering and game logic, never bound in templates.
+
+`OnlineGameService` signals:
+| Signal | Purpose |
+|---|---|
+| `mySocketId` | This client's socket ID |
+| `myPlayerInd` | This player's index in the room |
+| `currentRoom` | Current `RoomState` (null when not in a room) |
+
+Event streams (RxJS `Subject`) for one-shot triggers: `roomCreated$`, `roomJoined$`, `roomUpdated$`, `roomStarted$`, `roomError$`, `moveBroadcast$`, `playerDisconnected$`.
 
 **Game engine split**:
-- `GameEngineService` owns: `cells`, `grid`, `players`, `playerInd`, `playerCnt`, `turnCnt`, `hasAllPlayersClicked`, `isGameOver`, `currentColor`. Key methods: `initGame`, `addBallToCell` (returns `BurstResult | null`), `burstCell`, `goToNextPlayer`, `isValidMove`.
-- `ChainReactionComponent` owns: canvas rendering, `transitionBalls` animation, and user input routing.
+- `GameEngineService` owns: all logical game state and game logic. Key methods: `initGame`, `addBallToCell` (returns `BurstResult | null`), `burstCell`, `goToNextPlayer`, `isValidMove`.
+- `ChainReactionComponent` / `OnlineChainReactionComponent` own: canvas rendering, `transitionBalls` animation, and user input routing.
 
 The game renders entirely on an HTML `<canvas>` via `requestAnimationFrame`. Key component state:
 
@@ -51,15 +82,13 @@ The game renders entirely on an HTML `<canvas>` via `requestAnimationFrame`. Key
 
 **Utility layer** (`src/app/utility/`):
 - `enums.ts` — `COLOR`, `GRID` (row/col counts, default cell width, padding), `SPEED` (vibration and transition speeds)
-- `interfaces.ts` — `Grid`, `Cell`, `Ball`, `TransitionBall`, `Point`, `Direction`, `Player`, `BurstResult`, `PlayerMove`
+- `interfaces.ts` — `Grid`, `Cell`, `Ball`, `TransitionBall`, `Point`, `Direction`, `Player`, `BurstResult`, `PlayerMove`, `RoomState`, `RoomPlayer`, `OnlineMoveBroadcast`
 - `functions.ts` — pure canvas/geometry helpers (`drawGrid`, `drawBall`, `createBall`, `createTransitionBall`, coordinate conversion, cell-type predicates)
 
 **Responsive sizing**: `updateCellWidth()` shrinks cells to fit the viewport when `window.innerWidth < 511px` and is called on `resize`.
 
-**Confirmation modal**: uses the native `<dialog>` element retrieved via `document.getElementById('confirmation-modal')` in `ngAfterViewInit`. It appears when the user tries to restart or navigate home mid-game.
+**Confirmation modal**: uses the native `<dialog>` element retrieved via `document.getElementById(...)` in `ngAfterViewInit`. It appears when the user tries to restart or navigate home mid-game. Visibility is toggled via `[style.display]` binding driven by an `isModalShowing` signal.
 
 **Global styles** (`src/styles.scss`): defines `.fancy-button-1`, `.text-vibrate` animation, and `.title` — shared across all components.
 
-## Deployment
-
-Hosted on Firebase (`firebase.json`, `.firebaserc`). The GitHub Pages build (`npm run github-pages-build`) writes to `docs/` for the `rafiul41/chain-reaction` repo pages site.
+**Templates**: use Angular's built-in control flow (`@if`, `@for`) throughout. No `CommonModule`, `NgIf`, or `NgFor` imports needed.

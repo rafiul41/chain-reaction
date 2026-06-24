@@ -4,10 +4,10 @@
 
     <div class="turn-indicator" [style.--player-color]="players[playerInd]?.color">
       <span class="turn-dot"></span>
-      <span class="turn-text" [ngClass]="{ 'text-vibrate': isMoveTextToVibrate }">
+      <span class="turn-text" [class.text-vibrate]="isMoveTextToVibrate()">
         <span [style.color]="players[playerInd]?.color">{{ players[playerInd]?.color }}</span>'s turn
       </span>
-      <span class="turn-badge" [ngClass]="isMyTurn ? 'your-turn' : 'waiting'">
+      <span class="turn-badge" [class.your-turn]="isMyTurn" [class.waiting]="!isMyTurn">
         {{ isMyTurn ? 'Your turn' : 'Waiting...' }}
       </span>
     </div>
@@ -15,19 +15,23 @@
     <span class="move-count">Move #{{ turnCnt + 1 }}</span>
   </div>
 
-  <div *ngIf="disconnectedPlayerInd !== null" class="disconnect-banner">
-    <span>Player {{ disconnectedPlayerInd + 1 }} disconnected — you win!</span>
-    <button (click)="leaveGame()" class="game-btn">Leave</button>
-  </div>
-
-  <div *ngIf="isGameOver && disconnectedPlayerInd === null" class="game-over-banner">
-    <div class="game-over-inner">
-      <div class="game-over-label">Game Over</div>
-      <div class="game-over-winner" [style.color]="currentColor">{{ currentColor }} wins!</div>
-      <div class="game-over-sub">All orbs belong to {{ currentColor }}</div>
-      <button (click)="leaveGame()" class="game-btn leave-btn">Leave Game</button>
+  @if (disconnectedPlayerInd() !== null) {
+    <div class="disconnect-banner">
+      <span>Player {{ disconnectedPlayerInd()! + 1 }} disconnected — you win!</span>
+      <button (click)="leaveGame()" class="game-btn">Leave</button>
     </div>
-  </div>
+  }
+
+  @if (isGameOver && disconnectedPlayerInd() === null) {
+    <div class="game-over-banner">
+      <div class="game-over-inner">
+        <div class="game-over-label">Game Over</div>
+        <div class="game-over-winner" [style.color]="currentColor">{{ currentColor }} wins!</div>
+        <div class="game-over-sub">All orbs belong to {{ currentColor }}</div>
+        <button (click)="leaveGame()" class="game-btn leave-btn">Leave Game</button>
+      </div>
+    </div>
+  }
 
   <div class="canvas-wrapper">
     <canvas (click)="onCellClick($event)" #canvas></canvas>
@@ -36,7 +40,7 @@
 
 <dialog
   id="online-confirmation-modal"
-  [ngStyle]="{ display: isModalShowing ? 'flex' : 'none' }"
+  [style.display]="isModalShowing() ? 'flex' : 'none'"
 >
   <div class="modal-backdrop" (click)="closeModal()"></div>
   <div class="modal-card">

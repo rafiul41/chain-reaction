@@ -1,124 +1,87 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { OnlineGameService } from '../../services/online-game.service';
-import { RoomState } from '../../utility/interfaces';
 
 type LobbyView = 'select' | 'create' | 'join' | 'waiting';
 
 @Component({
-  standalone: false,
+  standalone: true,
+  imports: [FormsModule],
   selector: 'app-online-lobby',
   templateUrl: './online-lobby.component.html',
   styleUrls: ['./online-lobby.component.scss'],
 })
 export class OnlineLobbyComponent implements OnInit, OnDestroy {
-  view: LobbyView = 'select';
-  errorMsg = '';
+  readonly view = signal<LobbyView>('select');
+  readonly errorMsg = signal('');
 
-  // Create form
+  // Form fields — updated only by ngModel, which calls markForCheck internally.
   createName = '';
   createPlayerCnt = 2;
   createRowCnt = 5;
   createColCnt = 5;
-
-  // Join form
   joinName = '';
   joinCode = '';
 
-  currentRoom: RoomState | null = null;
+  // Derived from the service signal — auto-updates when service state changes.
+  readonly currentRoom = computed(() => this.online.currentRoom());
+  readonly isHost = computed(
+    () => this.currentRoom()?.hostSocketId === this.online.mySocketId(),
+  );
+  readonly canStart = computed(() => (this.currentRoom()?.players.length ?? 0) >= 2);
 
   private subs: Subscription[] = [];
 
-  get isHost(): boolean {
-    return this.currentRoom?.hostSocketId === this.online.mySocketId;
-  }
-
-  get canStart(): boolean {
-    return (this.currentRoom?.players.length ?? 0) >= 2;
-  }
-
-  constructor(
-    public online: OnlineGameService,
-    private router: Router,
-    private cdr: ChangeDetectorRef,
-  ) {}
+  constructor(public online: OnlineGameService, private router: Router) {}
 
   ngOnInit(): void {
     this.online.connect();
     this.subs.push(
-      this.online.roomCreated$.subscribe((r) => {
-        this.currentRoom = r;
-        this.view = 'waiting';
-        this.errorMsg = '';
+      this.online.roomCreated$.subscribe(() => {
+        this.view.set('waiting');
+        this.errorMsg.set('');
       }),
-      this.online.roomJoined$.subscribe((r) => {
-        this.currentRoom = r;
-        this.view = 'waiting';
-        this.errorMsg = '';
-      }),
-      this.online.roomUpdated$.subscribe((r) => {
-        console.log('IN ROOM UPDATED', r);
-        this.currentRoom = r;
-        this.cdr.detectChanges();
+      this.online.roomJoined$.subscribe(() => {
+        this.view.set('waiting');
+        this.errorMsg.set('');
       }),
       this.online.roomStarted$.subscribe(() => {
         this.router.navigate(['/online/game']);
       }),
       this.online.roomError$.subscribe((e) => {
-        this.errorMsg = e.message;
+        this.errorMsg.set(e.message);
       }),
     );
   }
 
-  selectCreate(): void {
-    this.view = 'create';
-    this.errorMsg = '';
-  }
-
-  selectJoin(): void {
-    this.view = 'join';
-    this.errorMsg = '';
-  }
+  selectCreate(): void { this.view.set('create'); this.errorMsg.set(''); }
+  selectJoin(): void { this.view.set('join'); this.errorMsg.set(''); }
 
   createRoom(): void {
-    if (!this.createName.trim()) {
-      this.errorMsg = 'Please enter your name.';
-      return;
-    }
-    this.online.createRoom(
-      this.createName.trim(),
-      this.createRowCnt,
-      this.createColCnt,
-      this.createPlayerCnt,
-    );
+    if (!this.createName.trim()) { this.errorMsg.set('Please enter your name.'); return; }
+    this.online.createRoom(this.createName.trim(), this.createRowCnt, this.createColCnt, this.createPlayerCnt);
   }
 
   joinRoom(): void {
-    if (!this.joinName.trim()) {
-      this.errorMsg = 'Please enter your name.';
-      return;
-    }
-    if (!this.joinCode.trim()) {
-      this.errorMsg = 'Please enter the room code.';
-      return;
-    }
+    if (!this.joinName.trim()) { this.errorMsg.set('Please enter your name.'); return; }
+    if (!this.joinCode.trim()) { this.errorMsg.set('Please enter the room code.'); return; }
     this.online.joinRoom(this.joinCode.trim(), this.joinName.trim());
   }
 
   startGame(): void {
-    if (this.currentRoom) {
-      this.online.startRoom(this.currentRoom.roomId);
-    }
+    const room = this.currentRoom();
+    if (room) this.online.startRoom(room.roomId);
   }
 
   goBack(): void {
-    if (this.view === 'waiting' || this.view === 'select') {
+    if (this.view() === 'waiting' || this.view() === 'select') {
       this.online.disconnect();
       this.router.navigate(['/home']);
     } else {
-      this.view = 'select';
-      this.errorMsg = '';
+      this.view.set('select');
+      this.errorMsg.set('');
     }
   }
 

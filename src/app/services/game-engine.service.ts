@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { Ball, BurstResult, Cell, Direction, Grid, Player } from '../utility/interfaces';
 import { COLOR, GRID } from '../utility/enums';
 import { createBall, getBallCoordinates, isCornerCell, isEdgeCell, isRowColValid } from '../utility/functions';
@@ -15,27 +15,30 @@ export class GameEngineService {
     { color: COLOR.CYAN,  name: 'unknown', cellCnt: 0 },
   ];
 
+  // Template-reactive state
+  readonly players = signal<Player[]>([]);
+  readonly playerInd = signal(0);
+  readonly turnCnt = signal(0);
+  readonly isGameOver = signal(false);
+  readonly currentColor = signal('');
+
+  // Internal game state (canvas-only, not template-facing)
   cells: Cell[][] = [];
   grid!: Grid;
-  players: Player[] = [];
-  playerInd = 0;
   playerCnt = 2;
   rowCnt = 5;
   colCnt = 5;
-  turnCnt = 0;
   hasAllPlayersClicked = false;
-  isGameOver = false;
-  currentColor = '';
   colorsOnBoard = new Map<string, number>();
 
   initGame(rowCnt: number, colCnt: number, players: Player[]): void {
-    this.players = players;
+    this.players.set(players);
     this.playerCnt = players.length;
-    this.playerInd = 0;
-    this.turnCnt = 0;
+    this.playerInd.set(0);
+    this.turnCnt.set(0);
     this.hasAllPlayersClicked = false;
-    this.isGameOver = false;
-    this.currentColor = '';
+    this.isGameOver.set(false);
+    this.currentColor.set('');
     this.colorsOnBoard = new Map<string, number>();
     this.grid = {
       rowCnt,
@@ -70,7 +73,7 @@ export class GameEngineService {
     const cell = this.cells[row][col];
     return (
       cell.balls.length === 0 ||
-      cell.color === this.players[this.playerInd].color
+      cell.color === this.players()[this.playerInd()].color
     );
   }
 
@@ -86,15 +89,14 @@ export class GameEngineService {
     }
   }
 
-  // Adds a ball to the cell. Returns BurstResult if the cell burst, null otherwise.
   addBallToCell(row: number, col: number): BurstResult | null {
     const cell = this.cells[row][col];
+    const color = this.currentColor();
     if (cell.balls.length === cell.maxBallCnt) {
       return this.burstCell(row, col);
     }
-
-    this.trackColorChange(cell.color, this.currentColor);
-    cell.color = this.currentColor;
+    this.trackColorChange(cell.color, color);
+    cell.color = color;
     const ball: Ball = createBall(row, col, this.grid, this.cells);
     if (ball.isVibrating) this.vibrateAllBallsInCell(row, col);
     cell.balls.push(ball);
@@ -102,7 +104,6 @@ export class GameEngineService {
     return null;
   }
 
-  // Clears the cell and returns the valid neighbors for burst propagation.
   burstCell(row: number, col: number): BurstResult {
     this.trackColorChange(this.cells[row][col].color, '');
     this.cells[row][col].color = '';
@@ -122,11 +123,11 @@ export class GameEngineService {
   }
 
   goToNextPlayer(): void {
-    this.playerInd++;
-    if (this.playerInd >= this.playerCnt) {
+    const next = this.playerInd() + 1;
+    if (next >= this.playerCnt) {
       this.hasAllPlayersClicked = true;
     }
-    this.playerInd %= this.playerCnt;
+    this.playerInd.set(next % this.playerCnt);
   }
 
   vibrateAllBallsInCell(row: number, col: number): void {
@@ -140,8 +141,6 @@ export class GameEngineService {
     const center = getBallCoordinates(row, col, this.grid);
     const d = 6;
 
-    // Reset all balls to center before applying the layout for the new count,
-    // preventing cumulative drift when the cell grows from 2 to 3 balls.
     for (const ball of cell.balls) {
       ball.startX = center.x;
       ball.startY = center.y;

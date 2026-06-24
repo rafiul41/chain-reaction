@@ -1,15 +1,16 @@
 import {
   AfterViewInit,
-  ChangeDetectorRef,
+  ChangeDetectionStrategy,
   Component,
   ElementRef,
   HostListener,
   OnDestroy,
   OnInit,
   ViewChild,
+  signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { Subscription, timer } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { TransitionBall } from '../../utility/interfaces';
 import { SPEED } from '../../utility/enums';
 import {
@@ -23,10 +24,11 @@ import { GameEngineService } from '../../services/game-engine.service';
 import { OnlineGameService } from '../../services/online-game.service';
 
 @Component({
-  standalone: false,
+  standalone: true,
   selector: 'app-online-chain-reaction',
   templateUrl: './online-chain-reaction.component.html',
   styleUrls: ['./online-chain-reaction.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OnlineChainReactionComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('canvas', { static: true })
@@ -38,49 +40,42 @@ export class OnlineChainReactionComponent implements OnInit, OnDestroy, AfterVie
   isTransitioning = false;
   transitionBalls: TransitionBall[] = [];
   hasWentToNextPlayer = true;
-  private gameOverTimer?: Subscription;
+  private gameOverTimerId?: ReturnType<typeof setTimeout>;
 
-  isMoveTextToVibrate = false;
-  disconnectedPlayerInd: number | null = null;
-
-  confirmationModal: any;
-  isModalShowing = false;
+  readonly isMoveTextToVibrate = signal(false);
+  readonly disconnectedPlayerInd = signal<number | null>(null);
+  readonly isModalShowing = signal(false);
 
   myPlayerInd = -1;
 
   private subs: Subscription[] = [];
+  private confirmationModal: HTMLDialogElement | null = null;
 
-  get players() { return this.engine.players; }
-  get playerInd() { return this.engine.playerInd; }
-  get turnCnt() { return this.engine.turnCnt; }
-  get isGameOver() { return this.engine.isGameOver; }
-  get currentColor() { return this.engine.currentColor; }
-  get isMyTurn() { return this.engine.playerInd === this.myPlayerInd; }
+  get players() { return this.engine.players(); }
+  get playerInd() { return this.engine.playerInd(); }
+  get turnCnt() { return this.engine.turnCnt(); }
+  get isGameOver() { return this.engine.isGameOver(); }
+  get currentColor() { return this.engine.currentColor(); }
+  get isMyTurn() { return this.engine.playerInd() === this.myPlayerInd; }
 
   constructor(
     private router: Router,
     public engine: GameEngineService,
     private online: OnlineGameService,
-    private cdr: ChangeDetectorRef,
   ) {}
 
   @HostListener('window:resize')
-  onResize() {
-    this.updateCellWidth();
-  }
+  onResize() { this.updateCellWidth(); }
 
   ngAfterViewInit(): void {
-    this.confirmationModal = document.getElementById('online-confirmation-modal');
+    this.confirmationModal = document.getElementById('online-confirmation-modal') as HTMLDialogElement;
   }
 
   ngOnInit(): void {
-    const room = this.online.currentRoom;
-    if (!room) {
-      this.router.navigate(['/online']);
-      return;
-    }
+    const room = this.online.currentRoom();
+    if (!room) { this.router.navigate(['/online']); return; }
 
-    this.myPlayerInd = this.online.myPlayerInd;
+    this.myPlayerInd = this.online.myPlayerInd();
     const players = room.players
       .sort((a, b) => a.playerInd - b.playerInd)
       .map((p) => ({ color: p.color, name: p.name, cellCnt: 0 }));
@@ -93,9 +88,9 @@ export class OnlineChainReactionComponent implements OnInit, OnDestroy, AfterVie
 
     this.subs.push(
       this.online.moveBroadcast$.subscribe(({ row, col }) => {
-        this.engine.turnCnt++;
+        this.engine.turnCnt.update(v => v + 1);
         this.hasWentToNextPlayer = false;
-        this.engine.currentColor = this.engine.players[this.engine.playerInd].color;
+        this.engine.currentColor.set(this.engine.players()[this.engine.playerInd()].color);
         this.applyMoveWithAnimation(row, col);
         if (!this.hasWentToNextPlayer && !this.isTransitioning) {
           this.engine.goToNextPlayer();
@@ -103,16 +98,15 @@ export class OnlineChainReactionComponent implements OnInit, OnDestroy, AfterVie
         }
       }),
       this.online.playerDisconnected$.subscribe(({ playerInd }) => {
-        this.disconnectedPlayerInd = playerInd;
-        this.engine.isGameOver = true;
-        this.cdr.detectChanges();
+        this.disconnectedPlayerInd.set(playerInd);
+        this.engine.isGameOver.set(true);
       }),
     );
   }
 
   ngOnDestroy(): void {
     cancelAnimationFrame(this.animationId);
-    this.gameOverTimer?.unsubscribe();
+    clearTimeout(this.gameOverTimerId);
     this.subs.forEach((s) => s.unsubscribe());
   }
 
@@ -131,7 +125,7 @@ export class OnlineChainReactionComponent implements OnInit, OnDestroy, AfterVie
   }
 
   animate() {
-    if (this.engine.isGameOver) return;
+    if (this.engine.isGameOver()) return;
     const { grid } = this.engine;
     this.ctx?.clearRect(0, 0, grid.width, grid.height);
     drawGrid(grid, this.ctx);
@@ -159,20 +153,20 @@ export class OnlineChainReactionComponent implements OnInit, OnDestroy, AfterVie
       }
     }
 
-    const { colorsOnBoard, currentColor } = this.engine;
+    const { colorsOnBoard } = this.engine;
+    const currentColor = this.engine.currentColor();
     const noOpponentCells =
       colorsOnBoard.size === 0 ||
       (colorsOnBoard.size === 1 && colorsOnBoard.has(currentColor));
-    if (this.engine.hasAllPlayersClicked && noOpponentCells && !this.gameOverTimer) {
-      this.gameOverTimer = timer(700).subscribe(() => {
-        this.engine.isGameOver = true;
-        this.cdr.detectChanges();
-      });
+    if (this.engine.hasAllPlayersClicked && noOpponentCells && !this.gameOverTimerId) {
+      this.gameOverTimerId = setTimeout(() => {
+        this.engine.isGameOver.set(true);
+      }, 700);
     }
 
     if (this.transitionBalls.length === 0) {
       this.isTransitioning = false;
-      if (!this.hasWentToNextPlayer && !this.engine.isGameOver) {
+      if (!this.hasWentToNextPlayer && !this.engine.isGameOver()) {
         this.engine.goToNextPlayer();
         this.hasWentToNextPlayer = true;
       }
@@ -204,7 +198,7 @@ export class OnlineChainReactionComponent implements OnInit, OnDestroy, AfterVie
         this.applyMoveWithAnimation(ball.endR, ball.endC);
         i--;
       } else {
-        drawBall(ball, this.engine.currentColor, this.ctx);
+        drawBall(ball, this.engine.currentColor(), this.ctx);
       }
     }
   }
@@ -220,11 +214,8 @@ export class OnlineChainReactionComponent implements OnInit, OnDestroy, AfterVie
   }
 
   onCellClick(e: any) {
-    if (this.isTransitioning || this.engine.isGameOver) return;
-    if (!this.isMyTurn) {
-      this.vibrateMoveText();
-      return;
-    }
+    if (this.isTransitioning || this.engine.isGameOver()) return;
+    if (!this.isMyTurn) { this.vibrateMoveText(); return; }
 
     const gridCoordinate = {
       x: e.offsetX - this.engine.grid.padding,
@@ -236,18 +227,14 @@ export class OnlineChainReactionComponent implements OnInit, OnDestroy, AfterVie
       this.engine.grid,
     );
     if (!isRowColValid(row, col, this.engine.grid)) return;
-    if (!this.engine.isValidMove(row, col)) {
-      this.vibrateMoveText();
-      return;
-    }
+    if (!this.engine.isValidMove(row, col)) { this.vibrateMoveText(); return; }
 
-    this.engine.turnCnt++;
+    this.engine.turnCnt.update(v => v + 1);
     this.hasWentToNextPlayer = false;
-    this.engine.currentColor = this.engine.players[this.engine.playerInd].color;
+    this.engine.currentColor.set(this.engine.players()[this.engine.playerInd()].color);
     this.applyMoveWithAnimation(row, col);
 
-    // Relay to server (others only)
-    this.online.makeMove(this.online.currentRoom!.roomId, row, col);
+    this.online.makeMove(this.online.currentRoom()!.roomId, row, col);
 
     if (!this.hasWentToNextPlayer && !this.isTransitioning) {
       this.engine.goToNextPlayer();
@@ -256,13 +243,13 @@ export class OnlineChainReactionComponent implements OnInit, OnDestroy, AfterVie
   }
 
   vibrateMoveText() {
-    this.isMoveTextToVibrate = true;
-    setTimeout(() => { this.isMoveTextToVibrate = false; }, 500);
+    this.isMoveTextToVibrate.set(true);
+    setTimeout(() => { this.isMoveTextToVibrate.set(false); }, 500);
   }
 
   goHome() {
-    if (!this.engine.isGameOver && this.engine.turnCnt > 0 && !this.isModalShowing) {
-      this.isModalShowing = true;
+    if (!this.engine.isGameOver() && this.engine.turnCnt() > 0 && !this.isModalShowing()) {
+      this.isModalShowing.set(true);
       this.confirmationModal?.showModal();
     } else {
       this.leaveGame();
@@ -270,7 +257,7 @@ export class OnlineChainReactionComponent implements OnInit, OnDestroy, AfterVie
   }
 
   closeModal() {
-    this.isModalShowing = false;
+    this.isModalShowing.set(false);
     this.confirmationModal?.close();
   }
 

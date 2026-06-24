@@ -1,10 +1,12 @@
 import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { GameEngineService } from '../../services/game-engine.service';
 import { Player } from '../../utility/interfaces';
 
 @Component({
-  standalone: false,
+  standalone: true,
+  imports: [FormsModule],
   selector: 'app-local-settings',
   templateUrl: './local-settings.component.html',
   styleUrls: ['./local-settings.component.scss'],
@@ -34,7 +36,5 @@ export class LocalSettingsComponent {
     });
   }
 
-  goHome(): void {
-    this.router.navigate(['/home']);
-  }
+  goHome(): void { this.router.navigate(['/home']); }
 }

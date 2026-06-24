@@ -2,8 +2,7 @@
   <div class="lobby-card">
     <button class="back-btn" (click)="goBack()">← Back</button>
 
-    <!-- Mode select -->
-    @if (view === 'select') {
+    @if (view() === 'select') {
       <h1 class="lobby-title">Play Online</h1>
       <p class="lobby-sub">Create a room or join a friend</p>
       <div class="mode-btns">
@@ -18,25 +17,16 @@
       </div>
     }
 
-    <!-- Create room form -->
-    @if (view === 'create') {
+    @if (view() === 'create') {
       <h1 class="lobby-title">Create Room</h1>
       <div class="form-body">
         <div class="field-group">
           <label class="field-label">Your Name</label>
-          <input
-            type="text"
-            [(ngModel)]="createName"
-            placeholder="Enter your name"
-            maxlength="16"
-            class="text-input"
-          />
+          <input type="text" [(ngModel)]="createName" placeholder="Enter your name" maxlength="16" class="text-input" />
         </div>
 
         <div class="field-group">
-          <label class="field-label">
-            Players <span class="field-value">{{ createPlayerCnt }}</span>
-          </label>
+          <label class="field-label">Players <span class="field-value">{{ createPlayerCnt }}</span></label>
           <input type="range" min="2" max="7" [(ngModel)]="createPlayerCnt" class="slider" />
           <div class="range-marks">
             <span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span>
@@ -45,79 +35,61 @@
 
         <div class="field-row">
           <div class="field-group">
-            <label class="field-label">
-              Rows <span class="field-value">{{ createRowCnt }}</span>
-            </label>
+            <label class="field-label">Rows <span class="field-value">{{ createRowCnt }}</span></label>
             <input type="range" min="5" max="8" [(ngModel)]="createRowCnt" class="slider" />
             <div class="range-marks"><span>5</span><span>6</span><span>7</span><span>8</span></div>
           </div>
           <div class="field-group">
-            <label class="field-label">
-              Cols <span class="field-value">{{ createColCnt }}</span>
-            </label>
+            <label class="field-label">Cols <span class="field-value">{{ createColCnt }}</span></label>
             <input type="range" min="5" max="8" [(ngModel)]="createColCnt" class="slider" />
             <div class="range-marks"><span>5</span><span>6</span><span>7</span><span>8</span></div>
           </div>
         </div>
 
-        @if (errorMsg) {
-          <div class="error-msg">{{ errorMsg }}</div>
+        @if (errorMsg()) {
+          <div class="error-msg">{{ errorMsg() }}</div>
         }
         <button class="submit-btn fancy-button-1" (click)="createRoom()">Create Room</button>
       </div>
     }
 
-    <!-- Join room form -->
-    @if (view === 'join') {
+    @if (view() === 'join') {
       <h1 class="lobby-title">Join Room</h1>
       <div class="form-body">
         <div class="field-group">
           <label class="field-label">Your Name</label>
-          <input
-            type="text"
-            [(ngModel)]="joinName"
-            placeholder="Enter your name"
-            maxlength="16"
-            class="text-input"
-          />
+          <input type="text" [(ngModel)]="joinName" placeholder="Enter your name" maxlength="16" class="text-input" />
         </div>
         <div class="field-group">
           <label class="field-label">Room Code</label>
-          <input
-            type="text"
-            [(ngModel)]="joinCode"
-            placeholder="e.g. A3K9"
-            maxlength="4"
-            class="text-input code-input"
-          />
+          <input type="text" [(ngModel)]="joinCode" placeholder="e.g. A3K9" maxlength="4" class="text-input code-input" />
         </div>
-        @if (errorMsg) {
-          <div class="error-msg">{{ errorMsg }}</div>
+        @if (errorMsg()) {
+          <div class="error-msg">{{ errorMsg() }}</div>
         }
         <button class="submit-btn fancy-button-1" (click)="joinRoom()">Join Room</button>
       </div>
     }
 
-    <!-- Waiting room -->
-    @if (view === 'waiting' && currentRoom) {
+    @if (view() === 'waiting' && currentRoom()) {
       <h1 class="lobby-title">Waiting Room</h1>
       <div class="room-code-block">
         <span class="room-code-label">Room Code</span>
-        <span class="room-code">{{ currentRoom.code }}</span>
+        <span class="room-code">{{ currentRoom()!.code }}</span>
         <span class="room-code-hint">Share this with friends</span>
       </div>
 
       <div class="player-list">
-        @for (p of currentRoom.players; track p.socketId) {
+        @for (p of currentRoom()!.players; track p.socketId) {
           <div class="player-row">
             <span class="player-dot" [style.background]="p.color"></span>
             <span class="player-name">{{ p.name }}</span>
-            @if (p.socketId === currentRoom.hostSocketId) {
+            @if (p.socketId === currentRoom()!.hostSocketId) {
               <span class="host-badge">Host</span>
             }
           </div>
         }
-        @for (_ of [].constructor(currentRoom.maxPlayers - currentRoom.players.length); track $index) {
+        @for (_ of [].constructor(currentRoom()!.maxPlayers - currentRoom()!.players.length); track $index) {
           <div class="player-row empty">
             <span class="player-dot empty-dot"></span>
             <span class="player-name">Waiting...</span>
@@ -125,20 +97,15 @@
         }
       </div>
 
-      @if (errorMsg) {
-        <div class="error-msg">{{ errorMsg }}</div>
+      @if (errorMsg()) {
+        <div class="error-msg">{{ errorMsg() }}</div>
       }
 
-      @if (isHost) {
-        <button
-          class="start-btn fancy-button-1"
-          [disabled]="!canStart"
-          (click)="startGame()"
-        >
+      @if (isHost()) {
+        <button class="start-btn fancy-button-1" [disabled]="!canStart()" (click)="startGame()">
           Start Game
         </button>
-      }
-      @if (!isHost) {
+      } @else {
         <p class="waiting-text">Waiting for host to start the game…</p>
       }
     }

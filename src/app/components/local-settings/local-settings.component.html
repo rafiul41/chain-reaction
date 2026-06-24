@@ -8,13 +8,7 @@
     <div class="settings-body">
       <div class="field-group">
         <label class="field-label">Players <span class="field-value">{{ playerCnt }}</span></label>
-        <input
-          type="range"
-          min="2"
-          max="7"
-          [(ngModel)]="playerCnt"
-          class="slider"
-        />
+        <input type="range" min="2" max="7" [(ngModel)]="playerCnt" class="slider" />
         <div class="range-marks">
           <span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span>
         </div>
@@ -36,16 +30,18 @@
       <div class="players-section">
         <p class="section-label">Player Names <span class="optional">(optional)</span></p>
         <div class="player-inputs">
-          <div *ngFor="let i of playerSlots" class="player-input-row">
-            <span class="color-dot" [style.background]="engine.allPlayers[i].color"></span>
-            <input
-              type="text"
-              [(ngModel)]="playerNames[i]"
-              [placeholder]="engine.allPlayers[i].color"
-              maxlength="16"
-              class="name-input"
-            />
-          </div>
+          @for (i of playerSlots; track i) {
+            <div class="player-input-row">
+              <span class="color-dot" [style.background]="engine.allPlayers[i].color"></span>
+              <input
+                type="text"
+                [(ngModel)]="playerNames[i]"
+                [placeholder]="engine.allPlayers[i].color"
+                maxlength="16"
+                class="name-input"
+              />
+            </div>
+          }
         </div>
       </div>
     </div>

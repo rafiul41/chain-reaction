@@ -1,4 +1,4 @@
-import { Injectable, NgZone, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy, signal } from '@angular/core';
 import { Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { environment } from '../../environments/environment';
@@ -8,6 +8,7 @@ import { OnlineMoveBroadcast, RoomState } from '../utility/interfaces';
 export class OnlineGameService implements OnDestroy {
   private socket: Socket | null = null;
 
+  // Event streams (one-shot triggers, not state)
   readonly roomCreated$ = new Subject<RoomState>();
   readonly roomJoined$ = new Subject<RoomState>();
   readonly roomUpdated$ = new Subject<RoomState>();
@@ -16,61 +17,55 @@ export class OnlineGameService implements OnDestroy {
   readonly moveBroadcast$ = new Subject<OnlineMoveBroadcast>();
   readonly playerDisconnected$ = new Subject<{ playerInd: number }>();
 
-  mySocketId = '';
-  myPlayerInd = -1;
-  currentRoom: RoomState | null = null;
-
-  constructor(private ngZone: NgZone) {}
+  // Reactive state - signal updates drive template reactivity in zoneless mode
+  readonly mySocketId = signal('');
+  readonly myPlayerInd = signal(-1);
+  readonly currentRoom = signal<RoomState | null>(null);
 
   connect(): void {
     if (this.socket?.connected) return;
     this.socket = io(environment.serverUrl);
+
     this.socket.on('connect', () => {
-      this.ngZone.run(() => { this.mySocketId = this.socket!.id!; });
+      this.mySocketId.set(this.socket!.id!);
     });
     this.socket.on('room:created', (d: RoomState) => {
-      this.ngZone.run(() => {
-        this.currentRoom = d;
-        this.myPlayerInd = 0;
-        this.roomCreated$.next(d);
-      });
+      this.currentRoom.set(d);
+      this.myPlayerInd.set(0);
+      this.roomCreated$.next(d);
     });
     this.socket.on('room:joined', (d: RoomState) => {
-      this.ngZone.run(() => {
-        this.currentRoom = d;
-        this.myPlayerInd = d.players.find((p) => p.socketId === this.mySocketId)?.playerInd ?? -1;
-        this.roomJoined$.next(d);
-      });
+      this.currentRoom.set(d);
+      this.myPlayerInd.set(
+        d.players.find((p) => p.socketId === this.mySocketId())?.playerInd ?? -1,
+      );
+      this.roomJoined$.next(d);
     });
     this.socket.on('room:updated', (d: RoomState) => {
-      this.ngZone.run(() => {
-        this.currentRoom = d;
-        this.roomUpdated$.next(d);
-      });
+      this.currentRoom.set(d);
+      this.roomUpdated$.next(d);
     });
     this.socket.on('room:started', (d: RoomState) => {
-      this.ngZone.run(() => {
-        this.currentRoom = d;
-        this.roomStarted$.next(d);
-      });
+      this.currentRoom.set(d);
+      this.roomStarted$.next(d);
     });
     this.socket.on('room:error', (d: { message: string }) => {
-      this.ngZone.run(() => this.roomError$.next(d));
+      this.roomError$.next(d);
     });
     this.socket.on('game:move_broadcast', (d: OnlineMoveBroadcast) => {
-      this.ngZone.run(() => this.moveBroadcast$.next(d));
+      this.moveBroadcast$.next(d);
     });
     this.socket.on('room:player_disconnected', (d: { playerInd: number }) => {
-      this.ngZone.run(() => this.playerDisconnected$.next(d));
+      this.playerDisconnected$.next(d);
     });
   }
 
   disconnect(): void {
     this.socket?.disconnect();
     this.socket = null;
-    this.mySocketId = '';
-    this.myPlayerInd = -1;
-    this.currentRoom = null;
+    this.mySocketId.set('');
+    this.myPlayerInd.set(-1);
+    this.currentRoom.set(null);
   }
 
   createRoom(playerName: string, rowCnt: number, colCnt: number, maxPlayers: number): void {

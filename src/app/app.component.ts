@@ -1,19 +1,13 @@
 import { Component } from '@angular/core';
-import { Router } from '@angular/router';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
-  standalone: false,
+  standalone: true,
+  imports: [RouterOutlet],
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss']
+  styleUrls: ['./app.component.scss'],
 })
 export class AppComponent {
   title = 'game-collection';
-
-  constructor(private router: Router) {
-  }
-
-  goToChainReactionGame() {
-    this.router.navigate(['chain-reaction']);
-  }
 }
