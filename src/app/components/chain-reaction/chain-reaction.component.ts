@@ -40,6 +40,7 @@ export class ChainReactionComponent
   transitionBalls: TransitionBall[] = [];
   hasWentToNextPlayer = true;
   private gameOverTimer?: Subscription;
+  private moveTextTimer?: Subscription;
 
   isMoveTextToVibrate = false;
 
@@ -99,6 +100,7 @@ export class ChainReactionComponent
   ngOnDestroy(): void {
     cancelAnimationFrame(this.animationId);
     this.gameOverTimer?.unsubscribe();
+    this.moveTextTimer?.unsubscribe();
   }
 
   updateCellWidth() {
@@ -146,8 +148,14 @@ export class ChainReactionComponent
     }
 
     const { colorsOnBoard, currentColor } = this.engine;
-    const noOpponentCells = colorsOnBoard.size === 0 || (colorsOnBoard.size === 1 && colorsOnBoard.has(currentColor));
-    if (this.engine.hasAllPlayersClicked && noOpponentCells && !this.gameOverTimer) {
+    const noOpponentCells =
+      colorsOnBoard.size === 0 ||
+      (colorsOnBoard.size === 1 && colorsOnBoard.has(currentColor));
+    if (
+      this.engine.hasAllPlayersClicked &&
+      noOpponentCells &&
+      !this.gameOverTimer
+    ) {
       this.gameOverTimer = timer(700).subscribe(() => {
         this.engine.isGameOver = true;
         this.cdr.detectChanges();
@@ -159,6 +167,7 @@ export class ChainReactionComponent
       if (!this.hasWentToNextPlayer && !this.engine.isGameOver) {
         this.engine.goToNextPlayer();
         this.hasWentToNextPlayer = true;
+        this.cdr.detectChanges();
       }
       return;
     }
@@ -239,10 +248,12 @@ export class ChainReactionComponent
   }
 
   vibrateMoveText() {
+    this.moveTextTimer?.unsubscribe();
     this.isMoveTextToVibrate = true;
-    setTimeout(() => {
+    this.moveTextTimer = timer(500).subscribe(() => {
       this.isMoveTextToVibrate = false;
-    }, 500);
+      this.cdr.detectChanges();
+    });
   }
 
   restart() {
