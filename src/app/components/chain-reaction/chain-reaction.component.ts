@@ -244,6 +244,7 @@ export class ChainReactionComponent
     if (!this.hasWentToNextPlayer && !this.isTransitioning) {
       this.engine.goToNextPlayer();
       this.hasWentToNextPlayer = true;
+      this.cdr.detectChanges();
     }
   }
 

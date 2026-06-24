@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, NgZone, OnDestroy } from '@angular/core';
 import { Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
 import { environment } from '../../environments/environment';
@@ -20,37 +20,49 @@ export class OnlineGameService implements OnDestroy {
   myPlayerInd = -1;
   currentRoom: RoomState | null = null;
 
+  constructor(private ngZone: NgZone) {}
+
   connect(): void {
     if (this.socket?.connected) return;
     this.socket = io(environment.serverUrl);
     this.socket.on('connect', () => {
-      this.mySocketId = this.socket!.id!;
+      this.ngZone.run(() => { this.mySocketId = this.socket!.id!; });
     });
     this.socket.on('room:created', (d: RoomState) => {
-      this.currentRoom = d;
-      this.myPlayerInd = 0;
-      this.roomCreated$.next(d);
+      this.ngZone.run(() => {
+        this.currentRoom = d;
+        this.myPlayerInd = 0;
+        this.roomCreated$.next(d);
+      });
     });
     this.socket.on('room:joined', (d: RoomState) => {
-      this.currentRoom = d;
-      this.myPlayerInd = d.players.find((p) => p.socketId === this.mySocketId)?.playerInd ?? -1;
-      this.roomJoined$.next(d);
+      this.ngZone.run(() => {
+        this.currentRoom = d;
+        this.myPlayerInd = d.players.find((p) => p.socketId === this.mySocketId)?.playerInd ?? -1;
+        this.roomJoined$.next(d);
+      });
     });
     this.socket.on('room:updated', (d: RoomState) => {
-      this.currentRoom = d;
-      this.roomUpdated$.next(d);
+      this.ngZone.run(() => {
+        this.currentRoom = d;
+        this.roomUpdated$.next(d);
+      });
     });
     this.socket.on('room:started', (d: RoomState) => {
-      this.currentRoom = d;
-      this.roomStarted$.next(d);
+      this.ngZone.run(() => {
+        this.currentRoom = d;
+        this.roomStarted$.next(d);
+      });
     });
-    this.socket.on('room:error', (d: { message: string }) => this.roomError$.next(d));
-    this.socket.on('game:move_broadcast', (d: OnlineMoveBroadcast) =>
-      this.moveBroadcast$.next(d),
-    );
-    this.socket.on('room:player_disconnected', (d: { playerInd: number }) =>
-      this.playerDisconnected$.next(d),
-    );
+    this.socket.on('room:error', (d: { message: string }) => {
+      this.ngZone.run(() => this.roomError$.next(d));
+    });
+    this.socket.on('game:move_broadcast', (d: OnlineMoveBroadcast) => {
+      this.ngZone.run(() => this.moveBroadcast$.next(d));
+    });
+    this.socket.on('room:player_disconnected', (d: { playerInd: number }) => {
+      this.ngZone.run(() => this.playerDisconnected$.next(d));
+    });
   }
 
   disconnect(): void {

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { OnlineGameService } from '../../services/online-game.service';
@@ -41,6 +41,7 @@ export class OnlineLobbyComponent implements OnInit, OnDestroy {
   constructor(
     public online: OnlineGameService,
     private router: Router,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -57,7 +58,9 @@ export class OnlineLobbyComponent implements OnInit, OnDestroy {
         this.errorMsg = '';
       }),
       this.online.roomUpdated$.subscribe((r) => {
+        console.log('IN ROOM UPDATED', r);
         this.currentRoom = r;
+        this.cdr.detectChanges();
       }),
       this.online.roomStarted$.subscribe(() => {
         this.router.navigate(['/online/game']);
