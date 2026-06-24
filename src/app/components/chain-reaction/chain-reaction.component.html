@@ -17,15 +17,17 @@
     </button>
   </div>
 
-  <div *ngIf="isGameOver" class="game-over-banner">
-    <div class="game-over-inner">
-      <div class="game-over-label">Game Over</div>
-      <div class="game-over-winner" [style.color]="currentColor">
-        {{ currentColor }} wins!
+  @if (isGameOver) {
+    <div class="game-over-banner">
+      <div class="game-over-inner">
+        <div class="game-over-label">Game Over</div>
+        <div class="game-over-winner" [style.color]="currentColor">
+          {{ currentColor }} wins!
+        </div>
+        <div class="game-over-sub">All orbs belong to {{ currentColor }}</div>
       </div>
-      <div class="game-over-sub">All orbs belong to {{ currentColor }}</div>
     </div>
-  </div>
+  }
 
   <div class="canvas-wrapper">
     <canvas (click)="onCellClick($event)" #canvas></canvas>

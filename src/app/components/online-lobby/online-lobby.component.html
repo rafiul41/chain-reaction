@@ -3,7 +3,7 @@
     <button class="back-btn" (click)="goBack()">← Back</button>
 
     <!-- Mode select -->
-    <ng-container *ngIf="view === 'select'">
+    @if (view === 'select') {
       <h1 class="lobby-title">Play Online</h1>
       <p class="lobby-sub">Create a room or join a friend</p>
       <div class="mode-btns">
@@ -16,10 +16,10 @@
           <span>Join Room</span>
         </button>
       </div>
-    </ng-container>
+    }
 
     <!-- Create room form -->
-    <ng-container *ngIf="view === 'create'">
+    @if (view === 'create') {
       <h1 class="lobby-title">Create Room</h1>
       <div class="form-body">
         <div class="field-group">
@@ -60,13 +60,15 @@
           </div>
         </div>
 
-        <div *ngIf="errorMsg" class="error-msg">{{ errorMsg }}</div>
+        @if (errorMsg) {
+          <div class="error-msg">{{ errorMsg }}</div>
+        }
         <button class="submit-btn fancy-button-1" (click)="createRoom()">Create Room</button>
       </div>
-    </ng-container>
+    }
 
     <!-- Join room form -->
-    <ng-container *ngIf="view === 'join'">
+    @if (view === 'join') {
       <h1 class="lobby-title">Join Room</h1>
       <div class="form-body">
         <div class="field-group">
@@ -89,13 +91,15 @@
             class="text-input code-input"
           />
         </div>
-        <div *ngIf="errorMsg" class="error-msg">{{ errorMsg }}</div>
+        @if (errorMsg) {
+          <div class="error-msg">{{ errorMsg }}</div>
+        }
         <button class="submit-btn fancy-button-1" (click)="joinRoom()">Join Room</button>
       </div>
-    </ng-container>
+    }
 
     <!-- Waiting room -->
-    <ng-container *ngIf="view === 'waiting' && currentRoom">
+    @if (view === 'waiting' && currentRoom) {
       <h1 class="lobby-title">Waiting Room</h1>
       <div class="room-code-block">
         <span class="room-code-label">Room Code</span>
@@ -104,31 +108,39 @@
       </div>
 
       <div class="player-list">
-        <div *ngFor="let p of currentRoom.players" class="player-row">
-          <span class="player-dot" [style.background]="p.color"></span>
-          <span class="player-name">{{ p.name }}</span>
-          <span *ngIf="p.socketId === currentRoom.hostSocketId" class="host-badge">Host</span>
-        </div>
-        <div
-          *ngFor="let _ of [].constructor(currentRoom.maxPlayers - currentRoom.players.length)"
-          class="player-row empty"
-        >
-          <span class="player-dot empty-dot"></span>
-          <span class="player-name">Waiting...</span>
-        </div>
+        @for (p of currentRoom.players; track p.socketId) {
+          <div class="player-row">
+            <span class="player-dot" [style.background]="p.color"></span>
+            <span class="player-name">{{ p.name }}</span>
+            @if (p.socketId === currentRoom.hostSocketId) {
+              <span class="host-badge">Host</span>
+            }
+          </div>
+        }
+        @for (_ of [].constructor(currentRoom.maxPlayers - currentRoom.players.length); track $index) {
+          <div class="player-row empty">
+            <span class="player-dot empty-dot"></span>
+            <span class="player-name">Waiting...</span>
+          </div>
+        }
       </div>
 
-      <div *ngIf="errorMsg" class="error-msg">{{ errorMsg }}</div>
+      @if (errorMsg) {
+        <div class="error-msg">{{ errorMsg }}</div>
+      }
 
-      <button
-        *ngIf="isHost"
-        class="start-btn fancy-button-1"
-        [disabled]="!canStart"
-        (click)="startGame()"
-      >
-        Start Game
-      </button>
-      <p *ngIf="!isHost" class="waiting-text">Waiting for host to start the game…</p>
-    </ng-container>
+      @if (isHost) {
+        <button
+          class="start-btn fancy-button-1"
+          [disabled]="!canStart"
+          (click)="startGame()"
+        >
+          Start Game
+        </button>
+      }
+      @if (!isHost) {
+        <p class="waiting-text">Waiting for host to start the game…</p>
+      }
+    }
   </div>
 </div>
